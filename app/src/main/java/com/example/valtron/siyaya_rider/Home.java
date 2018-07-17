@@ -393,7 +393,7 @@ public class Home extends AppCompatActivity
 
             final double latitude = mLastLocation.getLatitude();
             final double longitude = mLastLocation.getLongitude();
-
+            //Comment os
             if(mUserMarker != null)
                 mUserMarker.remove();
             mUserMarker = mMap.addMarker(new MarkerOptions()
