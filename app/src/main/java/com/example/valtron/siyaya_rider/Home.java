@@ -50,6 +50,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
@@ -60,6 +61,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.gson.Gson;
+import com.google.maps.android.SphericalUtil;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -376,7 +378,19 @@ public class Home extends AppCompatActivity
         if(mLastLocation !=null)
         {
             LatLng center = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+            LatLng northSide = SphericalUtil.computeOffset(center, 100000, 0);
+            LatLng southSide = SphericalUtil.computeOffset(center, 100000, 180);
 
+            LatLngBounds bounds = LatLngBounds.builder()
+                    .include(northSide)
+                    .include(southSide)
+                    .build();
+
+            place_location.setBoundsBias(bounds);
+            place_location.setFilter(typeFilter);
+
+            place_destination.setBoundsBias(bounds);
+            place_destination.setFilter(typeFilter);
 
             availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl);
             availableDrivers.addValueEventListener(new ValueEventListener() {
