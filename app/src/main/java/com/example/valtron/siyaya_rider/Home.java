@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
+import android.support.v7.widget.SwitchCompat;
 import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
@@ -94,7 +95,7 @@ public class Home extends AppCompatActivity
     DatabaseReference ref;
     GeoFire geoFire;
 
-    Marker mUserMarker;
+    Marker mUserMarker, DestinationMarker;
 
     ImageView imgExpandable;
     ButtonSheetRiderFragment mButtonSheet;
@@ -201,7 +202,7 @@ public class Home extends AppCompatActivity
                                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 15.0f));
 
-                ButtonSheetRiderFragment mBottomSheet = ButtonSheetRiderFragment.newInstance(mPlaceLocation, mPlaceDestination);
+                ButtonSheetRiderFragment mBottomSheet = ButtonSheetRiderFragment.newInstance(mPlaceLocation, mPlaceDestination, false);
                 mBottomSheet.show(getSupportFragmentManager(), mBottomSheet.getTag());
             }
 
@@ -562,7 +563,6 @@ public class Home extends AppCompatActivity
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
-
         if (id == R.id.nav_camera) {
             // Handle the camera action
         } else if (id == R.id.nav_gallery) {
@@ -576,7 +576,15 @@ public class Home extends AppCompatActivity
         } else if (id == R.id.nav_send) {
 
         }
+        /*
+        if(id == R.id.place_city_mode){
+            ((SwitchCompat)item.getActionView()).toggle();
+            if(((SwitchCompat)item.getActionView()).isChecked())
+                Toast.makeText(this, "On", Toast.LENGTH_SHORT).show();
+            else
+                Toast.makeText(this, "Off", Toast.LENGTH_SHORT).show();
 
+        }*/
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
@@ -589,6 +597,23 @@ public class Home extends AppCompatActivity
         mMap.getUiSettings().setZoomControlsEnabled(true);
         mMap.getUiSettings().setZoomGesturesEnabled(true);
         mMap.setInfoWindowAdapter(new CustomInfoWindow(this));
+
+        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                if(DestinationMarker != null)
+                    DestinationMarker.remove();
+                DestinationMarker = mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
+                .position(latLng)
+                .title("Destination"));
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15.0f));
+
+                ButtonSheetRiderFragment mBottomSheet = ButtonSheetRiderFragment.newInstance(String.format("%f,%f", mLastLocation.getLatitude(), mLastLocation.getLongitude()),
+                        String.format("%f,%f", latLng.latitude, latLng.longitude),
+                        true);
+                mBottomSheet.show(getSupportFragmentManager(), mBottomSheet.getTag());
+            }
+        });
         /*
         googleMap.addMarker(new MarkerOptions()
                     .position(new LatLng(37.7750,-122.4183))
