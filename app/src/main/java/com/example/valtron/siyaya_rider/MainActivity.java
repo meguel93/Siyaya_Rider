@@ -10,15 +10,19 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 import com.example.valtron.siyaya_rider.Common.Common;
 import com.example.valtron.siyaya_rider.Model.Rider;
 //import com.example.valtron.siyaya_rider.Model.User;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
@@ -32,6 +36,8 @@ import uk.co.chrisjenx.calligraphy.CalligraphyContextWrapper;
 public class MainActivity extends AppCompatActivity {
 
     Button btnSignIn, btnRegister;
+
+    TextView txtForgotPassword;
 
     FirebaseAuth auth;
     FirebaseDatabase db;
@@ -61,7 +67,15 @@ public class MainActivity extends AppCompatActivity {
         btnSignIn = (Button) findViewById(R.id.btnSignIn);
         btnRegister = (Button) findViewById(R.id.btnRegister);
         rootDriverLayout =(RelativeLayout) findViewById(R.id.rootLayout);
+        txtForgotPassword = (TextView) findViewById(R.id.txt_forgot_password);
 
+        txtForgotPassword.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                showForgotPwdDialog();
+                return false;
+            }
+        });
         btnRegister.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -75,6 +89,54 @@ public class MainActivity extends AppCompatActivity {
                 showSignIn();
             }
         });
+    }
+
+    private void showForgotPwdDialog() {
+        final AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
+        alertDialog.setTitle("SIGN IN ");
+        alertDialog.setMessage("Please use email to sign in");
+
+        LayoutInflater inflater = LayoutInflater.from(MainActivity.this);
+        View Forgot_Pwd_layout = inflater.inflate(R.layout.layout_forgot_password,null);
+
+        final MaterialEditText edtEmail = Forgot_Pwd_layout.findViewById(R.id.edtEmail);
+        alertDialog.setView(Forgot_Pwd_layout);
+
+        alertDialog.setPositiveButton("RESET", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(final DialogInterface dialog, int which) {
+                final SpotsDialog waitingDialog = new SpotsDialog(MainActivity.this);
+                waitingDialog.show();
+
+                auth.sendPasswordResetEmail(edtEmail.getText().toString().trim())
+                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Void> task) {
+                                dialog.dismiss();
+                                waitingDialog.dismiss();
+
+                                Snackbar.make(rootDriverLayout, "Reset password link has been sent!", Snackbar.LENGTH_SHORT).show();
+
+                            }
+                        }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        dialog.dismiss();
+                        waitingDialog.dismiss();
+
+                        Snackbar.make(rootDriverLayout, "" + e.getMessage(), Snackbar.LENGTH_SHORT).show();
+
+                    }
+                });
+            }
+        });
+        alertDialog.setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+        alertDialog.show();
     }
 
     private void showSignIn() {
