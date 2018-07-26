@@ -25,11 +25,15 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.rengwuxian.materialedittext.MaterialEditText;
 
 import dmax.dialog.SpotsDialog;
+import io.paperdb.Paper;
 import uk.co.chrisjenx.calligraphy.CalligraphyConfig;
 import uk.co.chrisjenx.calligraphy.CalligraphyContextWrapper;
 
@@ -60,6 +64,8 @@ public class MainActivity extends AppCompatActivity {
                 .build());
         setContentView(R.layout.activity_main);
 
+        Paper.init(this);
+
         auth = FirebaseAuth.getInstance();
         db = FirebaseDatabase.getInstance();
         users = db.getReference(Common.user_rider_tbl);
@@ -89,6 +95,53 @@ public class MainActivity extends AppCompatActivity {
                 showSignIn();
             }
         });
+
+        String user = Paper.book().read(Common.user_field);
+        String pwd = Paper.book().read(Common.pwd_field);
+
+        if(user != null && pwd != null)
+            if(!TextUtils.isEmpty(user) && !TextUtils.isEmpty(pwd))
+                autoLogin(user, pwd);
+    }
+
+    private void autoLogin(String user, String pwd) {
+        final SpotsDialog waitingDialog = new SpotsDialog(MainActivity.this);
+        waitingDialog.show();
+
+        auth.signInWithEmailAndPassword(user, pwd)
+                .addOnSuccessListener(new OnSuccessListener<AuthResult>() {
+                    @Override
+                    public void onSuccess(AuthResult authResult) {
+                        FirebaseDatabase.getInstance().getReference(Common.user_rider_tbl)
+                                .child(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                                .addListenerForSingleValueEvent(new ValueEventListener() {
+                                    @Override
+                                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                        Common.current_user = dataSnapshot.getValue(Rider.class);
+
+                                        waitingDialog.dismiss();
+                                        startActivity(new Intent(MainActivity.this, Home.class));
+                                        finish();
+                                    }
+
+                                    @Override
+                                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                                    }
+                                });
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        waitingDialog.dismiss();
+                        Snackbar.make(rootDriverLayout,"Failed"+e.getMessage(),Snackbar.LENGTH_SHORT)
+                                .show();
+
+                        btnSignIn.setEnabled(true);
+                    }
+                });
+
     }
 
     private void showForgotPwdDialog() {
@@ -178,7 +231,7 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-                final SpotsDialog waitingDialog = new SpotsDialog(MainActivity.this);
+                final android.app.AlertDialog waitingDialog = new SpotsDialog(MainActivity.this);
                 waitingDialog.show();
 
                 auth.signInWithEmailAndPassword(edtEmail.getText().toString(),edtPassword.getText().toString())
@@ -186,8 +239,28 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void onSuccess(AuthResult authResult) {
                                 waitingDialog.dismiss();
-                                startActivity(new Intent(MainActivity.this, Home.class));
-                                finish();
+
+                                FirebaseDatabase.getInstance().getReference(Common.user_rider_tbl)
+                                        .child(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                                        .addListenerForSingleValueEvent(new ValueEventListener() {
+                                            @Override
+                                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                                Common.current_user = dataSnapshot.getValue(Rider.class);
+
+                                                waitingDialog.dismiss();
+                                                startActivity(new Intent(MainActivity.this, Home.class));
+                                                finish();
+                                            }
+
+                                            @Override
+                                            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                                            }
+                                        });
+
+                                Paper.book().write(Common.user_field, edtEmail.getText().toString());
+                                Paper.book().write(Common.pwd_field, edtPassword.getText().toString());
+
                             }
                         })
                         .addOnFailureListener(new OnFailureListener() {
@@ -277,6 +350,8 @@ public class MainActivity extends AppCompatActivity {
                                 rider.setName(edtName.getText().toString());
                                 rider.setPhone(edtPhone.getText().toString());
                                 rider.setPassword(edtPassword.getText().toString());
+                                rider.setAvatar("");
+                                rider.setRates("0");
 
                                 users.child(FirebaseAuth.getInstance().getCurrentUser().getUid())
                                         .setValue(rider)

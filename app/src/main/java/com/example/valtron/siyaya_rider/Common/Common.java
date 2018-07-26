@@ -1,5 +1,6 @@
 package com.example.valtron.siyaya_rider.Common;
 
+import com.example.valtron.siyaya_rider.Model.Rider;
 import com.example.valtron.siyaya_rider.Remote.FCMClient;
 import com.example.valtron.siyaya_rider.Remote.GoogleMapsAPI;
 import com.example.valtron.siyaya_rider.Remote.IFCMService;
@@ -7,6 +8,8 @@ import com.example.valtron.siyaya_rider.Remote.IGoogleAPI;
 import com.example.valtron.siyaya_rider.Remote.RetrofitClient;
 
 public class Common {
+
+    public static Rider current_user = new Rider();
 
     public static final String driver_tbl = "Drivers";
     public static final String user_driver_tbl = "DriversInformation";
@@ -20,6 +23,9 @@ public class Common {
     private static double base_fare = 2.55;
     private static double time_rate = 2.55;
     private static double distance_rate = 2.55;
+    public static final String user_field = "user";
+    public static final String pwd_field = "password";
+    public static final int PICK_IMAGE_REQUEST = 9999;
 
     public static double getPrice(double km, int min)
     {

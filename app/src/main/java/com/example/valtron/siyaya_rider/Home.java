@@ -1,14 +1,21 @@
 package com.example.valtron.siyaya_rider;
 
 import android.Manifest;
+import android.app.ProgressDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.SwitchCompat;
+import android.text.TextUtils;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -20,6 +27,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.valtron.siyaya_rider.Common.Common;
@@ -55,6 +63,10 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -62,9 +74,22 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.OnProgressListener;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 import com.google.gson.Gson;
 import com.google.maps.android.SphericalUtil;
+import com.rengwuxian.materialedittext.MaterialEditText;
+import com.squareup.picasso.Picasso;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import de.hdodenhof.circleimageview.CircleImageView;
+import dmax.dialog.SpotsDialog;
+import io.paperdb.Paper;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -118,6 +143,12 @@ public class Home extends AppCompatActivity
 
     String mPlaceLocation, mPlaceDestination;
 
+    CircleImageView imageAvatar;
+    TextView txtRiderName, txtStars;
+
+    FirebaseStorage firebaseStorage;
+    StorageReference storageReference;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -134,6 +165,8 @@ public class Home extends AppCompatActivity
                         .setAction("Action", null).show();
             }
         });*/
+        firebaseStorage = FirebaseStorage.getInstance();
+        storageReference = firebaseStorage.getReference();
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -143,6 +176,19 @@ public class Home extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        View navigationHeaderView = navigationView.getHeaderView(0);
+        txtRiderName = (TextView) navigationHeaderView.findViewById(R.id.txtRiderName);
+        txtRiderName.setText(Common.current_user.getName());
+        txtStars = (TextView) navigationHeaderView.findViewById(R.id.txtRating);
+        txtStars.setText(Common.current_user.getRates());
+        imageAvatar = (CircleImageView) navigationHeaderView.findViewById(R.id.imageAvatar);
+
+        if(Common.current_user.getAvatar() != null && !TextUtils.isEmpty(Common.current_user.getAvatar()))
+            Picasso.with(this)
+                    .load(Common.current_user.getAvatar())
+                    .into(imageAvatar);
+
 
         mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
@@ -564,18 +610,17 @@ public class Home extends AppCompatActivity
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
-        if (id == R.id.nav_camera) {
+        if (id == R.id.nav_trip_history) {
             // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
+        } else if (id == R.id.nav_help) {
 
-        } else if (id == R.id.nav_slideshow) {
+        } else if (id == R.id.nav_update_info) {
+            showUpdateInfoDialog();
 
-        } else if (id == R.id.nav_manage) {
+        } else if (id == R.id.nav_change_pwd) {
 
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
-
+        } else if (id == R.id.nav_sing_out) {
+            signout();
         }
         /*
         if(id == R.id.place_city_mode){
@@ -589,6 +634,148 @@ public class Home extends AppCompatActivity
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    private void showUpdateInfoDialog() {
+        final AlertDialog.Builder dialog = new AlertDialog.Builder(this);
+        dialog.setTitle("Edit Account");
+        //dialog.setMessage("Please use email to sign in");
+
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View layout_editInfo = inflater.inflate(R.layout.layout_edit_information,null);
+
+        final MaterialEditText edtName = layout_editInfo.findViewById(R.id.edtName);
+        final MaterialEditText edtPhone = layout_editInfo.findViewById(R.id.edtPhone);
+        final ImageView profile_picture = layout_editInfo.findViewById(R.id.image_upload);
+        profile_picture.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                chooseImage();
+            }
+        });
+
+        dialog.setView(layout_editInfo);
+
+        dialog.setPositiveButton("UPDATE", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                final android.app.AlertDialog waitingDialog = new SpotsDialog(Home.this);
+                waitingDialog.show();
+
+                String name = edtName.getText().toString();
+                String phone = edtPhone.getText().toString();
+
+                Map<String, Object> updateInfo = new HashMap<>();
+                if(!TextUtils.isEmpty(name))
+                    updateInfo.put("name", name);
+                if(!TextUtils.isEmpty(phone))
+                    updateInfo.put("phone", phone);
+
+                DatabaseReference CommuterInformation = FirebaseDatabase.getInstance().getReference(Common.user_rider_tbl);
+                CommuterInformation.child(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                        .updateChildren(updateInfo)
+                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Void> task) {
+                                if(task.isSuccessful())
+                                    Toast.makeText(Home.this, "Account Updated!", Toast.LENGTH_SHORT).show();
+                                else
+                                    Toast.makeText(Home.this, "Account Updated error!", Toast.LENGTH_SHORT).show();
+
+                                waitingDialog.dismiss();
+                            }
+                        });
+            }
+        });
+
+        dialog.setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        dialog.show();
+    }
+
+    private void chooseImage() {
+        Intent intent = new Intent();
+        intent.setType("image/*");
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(Intent.createChooser(intent, "Select Picture: "), Common.PICK_IMAGE_REQUEST);
+
+
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode == Common.PICK_IMAGE_REQUEST && resultCode == RESULT_OK
+                && data != null && data.getData() != null){
+            Uri saveUri = data.getData();
+            if(saveUri != null){
+                final ProgressDialog mDialog = new ProgressDialog(this);
+                mDialog.setMessage("Uploading...");
+                mDialog.show();
+
+                String imageName = UUID.randomUUID().toString();
+                final StorageReference imageFolder = storageReference.child("images/" + imageName);
+                imageFolder.putFile(saveUri)
+                        .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                            @Override
+                            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                                mDialog.dismiss();
+                                //Toast.makeText(Home.this, "Uploaded!", Toast.LENGTH_SHORT).show();
+                                imageFolder.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                                    @Override
+                                    public void onSuccess(Uri uri) {
+                                        Map<String, Object> avatarUpdate = new HashMap<>();
+                                        avatarUpdate.put("avatarUrl", uri.toString());
+
+                                        DatabaseReference CommuterInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
+                                        CommuterInformation.child(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                                                .updateChildren(avatarUpdate)
+                                                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                    @Override
+                                                    public void onComplete(@NonNull Task<Void> task) {
+                                                        if(task.isSuccessful())
+                                                            Toast.makeText(Home.this, "Uploaded!", Toast.LENGTH_SHORT).show();
+                                                        else
+                                                            Toast.makeText(Home.this, "Uploaded error!", Toast.LENGTH_SHORT).show();
+                                                    }
+                                                })
+                                                .addOnFailureListener(new OnFailureListener() {
+                                                    @Override
+                                                    public void onFailure(@NonNull Exception e) {
+                                                        Toast.makeText(Home.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                                                    }
+                                                });
+
+                                    }
+                                });
+                            }
+                        })
+                        .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
+                            @Override
+                            public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
+                                double progress = (100.0* taskSnapshot.getBytesTransferred() / taskSnapshot.getTotalByteCount());
+                                mDialog.setMessage("Uploaded " + progress + "%");
+                            }
+                        });
+            }
+        }
+    }
+
+    private void signout() {
+        //Reset remeber me value
+        Paper.init(this);
+        Paper.book().destroy();
+
+        FirebaseAuth.getInstance().signOut();
+        Intent intent = new Intent(Home.this,MainActivity.class);
+        startActivity(intent);
+        finish();
     }
 
     @Override
