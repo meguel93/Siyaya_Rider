@@ -7,7 +7,9 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
@@ -38,6 +40,10 @@ import com.example.valtron.siyaya_rider.Model.Rider;
 import com.example.valtron.siyaya_rider.Model.Sender;
 import com.example.valtron.siyaya_rider.Model.Token;
 import com.example.valtron.siyaya_rider.Remote.IFCMService;
+import com.facebook.accountkit.Account;
+import com.facebook.accountkit.AccountKit;
+import com.facebook.accountkit.AccountKitCallback;
+import com.facebook.accountkit.AccountKitError;
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
 import com.firebase.geofire.GeoQuery;
@@ -46,8 +52,11 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.places.AutocompleteFilter;
 import com.google.android.gms.location.places.Place;
@@ -95,17 +104,15 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class Home extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback,
-        GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener,
-        LocationListener
-{
+        implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback {
 
     SupportMapFragment mapFragment;
 
     private GoogleMap mMap;
 
-    //FusedLocationProviderClient fusedLocationProviderClient;
+    FusedLocationProviderClient fusedLocationProviderClient;
+    LocationCallback locationCallback;
+
 
     private static final int MY_PERMISSION_REQUEST_CODE = 7192;
     private static final int PLAY_SERVICE_RES_REQUEST = 300193;
@@ -165,6 +172,7 @@ public class Home extends AppCompatActivity
                         .setAction("Action", null).show();
             }
         });*/
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         firebaseStorage = FirebaseStorage.getInstance();
         storageReference = firebaseStorage.getReference();
 
@@ -181,12 +189,12 @@ public class Home extends AppCompatActivity
         txtRiderName = (TextView) navigationHeaderView.findViewById(R.id.txtRiderName);
         txtRiderName.setText(Common.current_user.getName());
         txtStars = (TextView) navigationHeaderView.findViewById(R.id.txtRating);
-        txtStars.setText(Common.current_user.getRates());
+        txtStars.setText("0.0");
         imageAvatar = (CircleImageView) navigationHeaderView.findViewById(R.id.imageAvatar);
 
-        if(Common.current_user.getAvatar() != null && !TextUtils.isEmpty(Common.current_user.getAvatar()))
+        if (Common.current_user.getAvatarUrl() != null && !TextUtils.isEmpty(Common.current_user.getAvatarUrl()))
             Picasso.with(this)
-                    .load(Common.current_user.getAvatar())
+                    .load(Common.current_user.getAvatarUrl())
                     .into(imageAvatar);
 
 
@@ -194,8 +202,7 @@ public class Home extends AppCompatActivity
         mapFragment.getMapAsync(this);
 
 
-
-        imgExpandable = (ImageView)findViewById(R.id.imgExpandle);
+        imgExpandable = (ImageView) findViewById(R.id.imgExpandle);
         /*//mButtonSheet = ButtonSheetRiderFragment.newInstance("Rider bottom sheet");
         imgExpandable.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -205,23 +212,33 @@ public class Home extends AppCompatActivity
         });*/
 
 
-        btnPickupRequest = (Button)findViewById(R.id.btnPickupRequest);
+        btnPickupRequest = (Button) findViewById(R.id.btnPickupRequest);
         btnPickupRequest.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(!isDriverFound)
-                    requestPickupHere(FirebaseAuth.getInstance().getCurrentUser().getUid());
+                if (!isDriverFound)
+                    AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
+                        @Override
+                        public void onSuccess(Account account) {
+                            requestPickupHere(account.getId());
+                        }
+
+                        @Override
+                        public void onError(AccountKitError accountKitError) {
+
+                        }
+                    });
                 else
                     sendRequestToDriver(driverId);
             }
         });
 
-        place_destination = (PlaceAutocompleteFragment)getFragmentManager().findFragmentById(R.id.place_destination);
-        place_location = (PlaceAutocompleteFragment)getFragmentManager().findFragmentById(R.id.place_location);
+        place_destination = (PlaceAutocompleteFragment) getFragmentManager().findFragmentById(R.id.place_destination);
+        place_location = (PlaceAutocompleteFragment) getFragmentManager().findFragmentById(R.id.place_location);
         typeFilter = new AutocompleteFilter.Builder()
-                    .setTypeFilter(AutocompleteFilter.TYPE_FILTER_ADDRESS)
-                    .setTypeFilter(3)
-                    .build();
+                .setTypeFilter(AutocompleteFilter.TYPE_FILTER_ADDRESS)
+                .setTypeFilter(3)
+                .build();
 
         place_location.setOnPlaceSelectedListener(new PlaceSelectionListener() {
             @Override
@@ -231,8 +248,8 @@ public class Home extends AppCompatActivity
                 mMap.clear();
 
                 mUserMarker = mMap.addMarker(new MarkerOptions().position(place.getLatLng())
-                                .icon(BitmapDescriptorFactory.defaultMarker())
-                                .title("Pickup here"));
+                        .icon(BitmapDescriptorFactory.defaultMarker())
+                        .title("Pickup here"));
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 15.0f));
             }
 
@@ -246,7 +263,7 @@ public class Home extends AppCompatActivity
             public void onPlaceSelected(Place place) {
                 mPlaceDestination = place.getAddress().toString();
                 mMap.addMarker(new MarkerOptions().position(place.getLatLng())
-                                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 15.0f));
 
                 ButtonSheetRiderFragment mBottomSheet = ButtonSheetRiderFragment.newInstance(mPlaceLocation, mPlaceDestination, false);
@@ -264,12 +281,22 @@ public class Home extends AppCompatActivity
     }
 
     private void updateFirebaseToken() {
-        FirebaseDatabase db = FirebaseDatabase.getInstance();
-        DatabaseReference tokens = db.getReference(Common.token_tbl);
+        AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
+            @Override
+            public void onSuccess(Account account) {
+                FirebaseDatabase db = FirebaseDatabase.getInstance();
+                DatabaseReference tokens = db.getReference(Common.token_tbl);
 
-        Token token = new Token(FirebaseInstanceId.getInstance().getToken());
-        tokens.child(FirebaseAuth.getInstance().getCurrentUser().getUid())
-                .setValue(token);
+                Token token = new Token(FirebaseInstanceId.getInstance().getToken());
+                tokens.child(account.getId())
+                        .setValue(token);
+            }
+
+            @Override
+            public void onError(AccountKitError accountKitError) {
+
+            }
+        });
     }
 
     private void sendRequestToDriver(String driverId) {
@@ -279,21 +306,20 @@ public class Home extends AppCompatActivity
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                        for (DataSnapshot postSnapShot:dataSnapshot.getChildren())
-                        {
+                        for (DataSnapshot postSnapShot : dataSnapshot.getChildren()) {
                             Token token = postSnapShot.getValue(Token.class);
 
                             String json_lat_lng = new Gson().toJson(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
                             String riderToken = FirebaseInstanceId.getInstance().getToken();
                             Notification data = new Notification(riderToken, json_lat_lng);
 
-                            Sender content = new Sender(token.getToken(),data);
+                            Sender content = new Sender(token.getToken(), data);
 
                             mService.sendMessage(content)
                                     .enqueue(new Callback<FCMResponse>() {
                                         @Override
                                         public void onResponse(Call<FCMResponse> call, Response<FCMResponse> response) {
-                                            if(response.body().success == 1)
+                                            if (response.body().success == 1)
                                                 Toast.makeText(Home.this, "Request sent!", Toast.LENGTH_SHORT).show();
                                             else
                                                 Toast.makeText(Home.this, "Failed!", Toast.LENGTH_SHORT).show();
@@ -318,9 +344,9 @@ public class Home extends AppCompatActivity
     private void requestPickupHere(String uid) {
         DatabaseReference dbRequest = FirebaseDatabase.getInstance().getReference(Common.pickup_request_tbl);
         GeoFire mGeoFire = new GeoFire(dbRequest);
-        mGeoFire.setLocation(uid, new GeoLocation(mLastLocation.getLatitude(),mLastLocation.getLongitude()));
+        mGeoFire.setLocation(uid, new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
 
-        if(mUserMarker.isVisible())
+        if (mUserMarker.isVisible())
             mUserMarker.remove();
 
         mUserMarker = mMap.addMarker(new MarkerOptions()
@@ -346,7 +372,7 @@ public class Home extends AppCompatActivity
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
             @Override
             public void onKeyEntered(String key, GeoLocation location) {
-                if(!isDriverFound){
+                if (!isDriverFound) {
                     isDriverFound = true;
                     driverId = key;
                     btnPickupRequest.setText("CALL DRIVER");
@@ -366,11 +392,10 @@ public class Home extends AppCompatActivity
 
             @Override
             public void onGeoQueryReady() {
-                if(!isDriverFound && radius < LIMIT){
+                if (!isDriverFound && radius < LIMIT) {
                     radius++;
                     findDriver();
-                }
-                else{
+                } else {
                     Toast.makeText(Home.this, "No available driver near you", Toast.LENGTH_SHORT).show();
                     btnPickupRequest.setText("REQUEST PICKUP");
                 }
@@ -385,11 +410,9 @@ public class Home extends AppCompatActivity
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode)
-        {
+        switch (requestCode) {
             case MY_PERMISSION_REQUEST_CODE:
-                if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
-                {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     setUpLocation();
                 }
                 break;
@@ -397,84 +420,101 @@ public class Home extends AppCompatActivity
     }
 
     private void setUpLocation() {
-        if(ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ){
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
             ActivityCompat.requestPermissions(this, new String[]{
                     android.Manifest.permission.ACCESS_COARSE_LOCATION,
                     android.Manifest.permission.ACCESS_FINE_LOCATION
-            },MY_PERMISSION_REQUEST_CODE);
-        }
-        else
-        {
-            if(checkPlayServices())
-            {
-                buildGoogleApiClient();
-                createLocationRequest();
-                displayLocation();
-            }
+            }, MY_PERMISSION_REQUEST_CODE);
+        } else {
+            //buildLocationRequest();
+            buildLocationCallBack();
+            createLocationRequest();
+            displayLocation();
         }
     }
 
+    private void buildLocationCallBack() {
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                Common.mLastLocation = locationResult.getLocations().get(locationResult.getLocations().size() - 1);
+                displayLocation();
+            }
+        };
+    }
+
+    /*private void buildLocationRequest() {
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(UPDATE_INTERVAL);
+        mLocationRequest.setFastestInterval(FASTEST_INTERVAL);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        mLocationRequest.setSmallestDisplacement(DISPLACEMENT);
+    }*/
+
     private void displayLocation() {
-        if(ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ){
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
 
-        if(mLastLocation !=null)
-        {
-            LatLng center = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-            LatLng northSide = SphericalUtil.computeOffset(center, 100000, 0);
-            LatLng southSide = SphericalUtil.computeOffset(center, 100000, 180);
+        fusedLocationProviderClient.getLastLocation().addOnSuccessListener(new OnSuccessListener<Location>() {
+            @Override
+            public void onSuccess(Location location) {
+                Common.mLastLocation = location;
+                if (Common.mLastLocation != null) {
+                    LatLng center = new LatLng(Common.mLastLocation.getLatitude(), Common.mLastLocation.getLongitude());
+                    LatLng northSide = SphericalUtil.computeOffset(center, 100000, 0);
+                    LatLng southSide = SphericalUtil.computeOffset(center, 100000, 180);
 
-            LatLngBounds bounds = LatLngBounds.builder()
-                    .include(northSide)
-                    .include(southSide)
-                    .build();
+                    LatLngBounds bounds = LatLngBounds.builder()
+                            .include(northSide)
+                            .include(southSide)
+                            .build();
 
-            place_location.setBoundsBias(bounds);
-            place_location.setFilter(typeFilter);
+                    place_location.setBoundsBias(bounds);
+                    place_location.setFilter(typeFilter);
 
-            place_destination.setBoundsBias(bounds);
-            place_destination.setFilter(typeFilter);
+                    place_destination.setBoundsBias(bounds);
+                    place_destination.setFilter(typeFilter);
 
-            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl);
-            availableDrivers.addValueEventListener(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+                    availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl);
+                    availableDrivers.addValueEventListener(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            loadAllAvailableDrivers(new LatLng(Common.mLastLocation.getLatitude(), Common.mLastLocation.getLongitude()));
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                        }
+                    });
+
+                    final double latitude = Common.mLastLocation.getLatitude();
+                    final double longitude = Common.mLastLocation.getLongitude();
+                    //Comment os
+                    if (mUserMarker != null)
+                        mUserMarker.remove();
+                    mUserMarker = mMap.addMarker(new MarkerOptions()
+                            .position(new LatLng(latitude, longitude))
+                            .title(String.format("Your Location")));
+
+                    /*.icon(BitmapDescriptorFactory.fromResource(R.drawable.top))*/
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude), 15.0f));
+
+                    //rotateMarker(mCurrent,-360,mMap);
+
+                    loadAllAvailableDrivers(new LatLng(Common.mLastLocation.getLatitude(), Common.mLastLocation.getLongitude()));
+
+                    Log.d("EDMTDEV", String.format("Your location was changed : %f / %f", latitude, longitude));
+                } else {
+                    Log.d("ERROR", "Can not get your location");
                 }
+            }
+        });
 
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                }
-            });
-
-            final double latitude = mLastLocation.getLatitude();
-            final double longitude = mLastLocation.getLongitude();
-            //Comment os
-            if(mUserMarker != null)
-                mUserMarker.remove();
-            mUserMarker = mMap.addMarker(new MarkerOptions()
-                    .position(new LatLng(latitude,longitude))
-                    .title(String.format("Your Location")));
-
-            /*.icon(BitmapDescriptorFactory.fromResource(R.drawable.top))*/
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude,longitude),15.0f));
-
-            //rotateMarker(mCurrent,-360,mMap);
-
-            loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
-
-            Log.d("EDMTDEV", String.format("Your location was changed : %f / %f", latitude, longitude));
-        }
-        else
-        {
-            Log.d("ERROR", "Can not get your location");
-        }
     }
 
     private void loadAllAvailableDrivers(final LatLng location) {
@@ -482,7 +522,7 @@ public class Home extends AppCompatActivity
         mMap.clear();
 
         mMap.addMarker(new MarkerOptions().position(location)
-                        .title("You"));
+                .title("You"));
 
         DatabaseReference driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl);
         GeoFire gf = new GeoFire(driverLocation);
@@ -501,11 +541,11 @@ public class Home extends AppCompatActivity
                                 Rider rider = dataSnapshot.getValue(Rider.class);
 
                                 mMap.addMarker(new MarkerOptions()
-                                                .position(new LatLng(location.latitude, location.longitude))
-                                                .flat(true)
-                                                .title(rider.getName())
-                                                .snippet("Phone : " + rider.getPhone())
-                                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.top)));
+                                        .position(new LatLng(location.latitude, location.longitude))
+                                        .flat(true)
+                                        .title(rider.getName())
+                                        .snippet("Phone : " + rider.getPhone())
+                                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.top)));
 
                             }
 
@@ -528,7 +568,7 @@ public class Home extends AppCompatActivity
 
             @Override
             public void onGeoQueryReady() {
-                if(distance <= LIMIT){
+                if (distance <= LIMIT) {
                     distance++;
                     loadAllAvailableDrivers(location);
                 }
@@ -547,29 +587,6 @@ public class Home extends AppCompatActivity
         mLocationRequest.setFastestInterval(FASTEST_INTERVAL);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         mLocationRequest.setSmallestDisplacement(DISPLACEMENT);
-    }
-
-    private void buildGoogleApiClient() {
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .addApi(LocationServices.API)
-                .build();
-        mGoogleApiClient.connect();
-    }
-
-    private boolean checkPlayServices() {
-        int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
-        if(resultCode != ConnectionResult.SUCCESS) {
-            if (GooglePlayServicesUtil.isUserRecoverableError(resultCode))
-                GooglePlayServicesUtil.getErrorDialog(resultCode, this, PLAY_SERVICE_RES_REQUEST).show();
-            else {
-                Toast.makeText(this, "This device is not supported", Toast.LENGTH_LONG).show();
-                finish();
-            }
-            return false;
-        }
-        return true;
     }
 
 
@@ -642,7 +659,7 @@ public class Home extends AppCompatActivity
         //dialog.setMessage("Please use email to sign in");
 
         LayoutInflater inflater = LayoutInflater.from(this);
-        View layout_editInfo = inflater.inflate(R.layout.layout_edit_information,null);
+        View layout_editInfo = inflater.inflate(R.layout.layout_edit_information, null);
 
         final MaterialEditText edtName = layout_editInfo.findViewById(R.id.edtName);
         final MaterialEditText edtPhone = layout_editInfo.findViewById(R.id.edtPhone);
@@ -660,32 +677,42 @@ public class Home extends AppCompatActivity
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 dialog.dismiss();
-                final android.app.AlertDialog waitingDialog = new SpotsDialog(Home.this);
-                waitingDialog.show();
+                AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
+                    @Override
+                    public void onSuccess(Account account) {
+                        final android.app.AlertDialog waitingDialog = new SpotsDialog(Home.this);
+                        waitingDialog.show();
 
-                String name = edtName.getText().toString();
-                String phone = edtPhone.getText().toString();
+                        String name = edtName.getText().toString();
+                        String phone = edtPhone.getText().toString();
 
-                Map<String, Object> updateInfo = new HashMap<>();
-                if(!TextUtils.isEmpty(name))
-                    updateInfo.put("name", name);
-                if(!TextUtils.isEmpty(phone))
-                    updateInfo.put("phone", phone);
+                        Map<String, Object> updateInfo = new HashMap<>();
+                        if (!TextUtils.isEmpty(name))
+                            updateInfo.put("name", name);
+                        if (!TextUtils.isEmpty(phone))
+                            updateInfo.put("phone", phone);
 
-                DatabaseReference CommuterInformation = FirebaseDatabase.getInstance().getReference(Common.user_rider_tbl);
-                CommuterInformation.child(FirebaseAuth.getInstance().getCurrentUser().getUid())
-                        .updateChildren(updateInfo)
-                        .addOnCompleteListener(new OnCompleteListener<Void>() {
-                            @Override
-                            public void onComplete(@NonNull Task<Void> task) {
-                                if(task.isSuccessful())
-                                    Toast.makeText(Home.this, "Account Updated!", Toast.LENGTH_SHORT).show();
-                                else
-                                    Toast.makeText(Home.this, "Account Updated error!", Toast.LENGTH_SHORT).show();
+                        DatabaseReference CommuterInformation = FirebaseDatabase.getInstance().getReference(Common.user_rider_tbl);
+                        CommuterInformation.child(account.getId())
+                                .updateChildren(updateInfo)
+                                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<Void> task) {
+                                        if (task.isSuccessful())
+                                            Toast.makeText(Home.this, "Account Updated!", Toast.LENGTH_SHORT).show();
+                                        else
+                                            Toast.makeText(Home.this, "Account Updated error!", Toast.LENGTH_SHORT).show();
 
-                                waitingDialog.dismiss();
-                            }
-                        });
+                                        waitingDialog.dismiss();
+                                    }
+                                });
+                    }
+
+                    @Override
+                    public void onError(AccountKitError accountKitError) {
+
+                    }
+                });
             }
         });
 
@@ -711,10 +738,10 @@ public class Home extends AppCompatActivity
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode == Common.PICK_IMAGE_REQUEST && resultCode == RESULT_OK
-                && data != null && data.getData() != null){
+        if (requestCode == Common.PICK_IMAGE_REQUEST && resultCode == RESULT_OK
+                && data != null && data.getData() != null) {
             Uri saveUri = data.getData();
-            if(saveUri != null){
+            if (saveUri != null) {
                 final ProgressDialog mDialog = new ProgressDialog(this);
                 mDialog.setMessage("Uploading...");
                 mDialog.show();
@@ -729,29 +756,39 @@ public class Home extends AppCompatActivity
                                 //Toast.makeText(Home.this, "Uploaded!", Toast.LENGTH_SHORT).show();
                                 imageFolder.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                                     @Override
-                                    public void onSuccess(Uri uri) {
-                                        Map<String, Object> avatarUpdate = new HashMap<>();
-                                        avatarUpdate.put("avatarUrl", uri.toString());
+                                    public void onSuccess(final Uri uri) {
+                                        AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
+                                            @Override
+                                            public void onSuccess(Account account) {
+                                                Map<String, Object> avatarUpdate = new HashMap<>();
+                                                avatarUpdate.put("avatarUrl", uri.toString());
 
-                                        DatabaseReference CommuterInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
-                                        CommuterInformation.child(FirebaseAuth.getInstance().getCurrentUser().getUid())
-                                                .updateChildren(avatarUpdate)
-                                                .addOnCompleteListener(new OnCompleteListener<Void>() {
-                                                    @Override
-                                                    public void onComplete(@NonNull Task<Void> task) {
-                                                        if(task.isSuccessful())
-                                                            Toast.makeText(Home.this, "Uploaded!", Toast.LENGTH_SHORT).show();
-                                                        else
-                                                            Toast.makeText(Home.this, "Uploaded error!", Toast.LENGTH_SHORT).show();
-                                                    }
-                                                })
-                                                .addOnFailureListener(new OnFailureListener() {
-                                                    @Override
-                                                    public void onFailure(@NonNull Exception e) {
-                                                        Toast.makeText(Home.this, e.getMessage(), Toast.LENGTH_SHORT).show();
-                                                    }
-                                                });
+                                                DatabaseReference CommuterInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
+                                                CommuterInformation.child(account.getId())
+                                                        .updateChildren(avatarUpdate)
+                                                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                            @Override
+                                                            public void onComplete(@NonNull Task<Void> task) {
+                                                                if (task.isSuccessful())
+                                                                    Toast.makeText(Home.this, "Uploaded!", Toast.LENGTH_SHORT).show();
+                                                                else
+                                                                    Toast.makeText(Home.this, "Uploaded error!", Toast.LENGTH_SHORT).show();
+                                                            }
+                                                        })
+                                                        .addOnFailureListener(new OnFailureListener() {
+                                                            @Override
+                                                            public void onFailure(@NonNull Exception e) {
+                                                                Toast.makeText(Home.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                                                            }
+                                                        });
 
+                                            }
+
+                                            @Override
+                                            public void onError(AccountKitError accountKitError) {
+
+                                            }
+                                        });
                                     }
                                 });
                             }
@@ -759,7 +796,7 @@ public class Home extends AppCompatActivity
                         .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
                             @Override
                             public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
-                                double progress = (100.0* taskSnapshot.getBytesTransferred() / taskSnapshot.getTotalByteCount());
+                                double progress = (100.0 * taskSnapshot.getBytesTransferred() / taskSnapshot.getTotalByteCount());
                                 mDialog.setMessage("Uploaded " + progress + "%");
                             }
                         });
@@ -768,24 +805,40 @@ public class Home extends AppCompatActivity
     }
 
     private void signout() {
-        //Reset remeber me value
-        Paper.init(this);
-        Paper.book().destroy();
+        AlertDialog.Builder builder;
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+            builder = new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert);
+        else
+            builder = new AlertDialog.Builder(this);
 
-        FirebaseAuth.getInstance().signOut();
-        Intent intent = new Intent(Home.this,MainActivity.class);
-        startActivity(intent);
-        finish();
+        builder = new AlertDialog.Builder(this)
+                .setMessage("Are you sure you want to logout?")
+                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        AccountKit.logOut();
+                        Intent intent = new Intent(Home.this, MainActivity.class);
+                        startActivity(intent);
+                        finish();
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+        builder.show();
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
 
-        try{
+        try {
             boolean isSuccess = googleMap.setMapStyle(
                     MapStyleOptions.loadRawResourceStyle(this, R.raw.siyaya_map)
             );
-        } catch (Exception ex){
+        } catch (Exception ex) {
             ex.printStackTrace();
         }
 
@@ -797,11 +850,11 @@ public class Home extends AppCompatActivity
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
-                if(DestinationMarker != null)
+                if (DestinationMarker != null)
                     DestinationMarker.remove();
                 DestinationMarker = mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
-                .position(latLng)
-                .title("Destination"));
+                        .position(latLng)
+                        .title("Destination"));
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15.0f));
 
                 ButtonSheetRiderFragment mBottomSheet = ButtonSheetRiderFragment.newInstance(String.format("%f,%f", mLastLocation.getLatitude(), mLastLocation.getLongitude()),
@@ -810,12 +863,31 @@ public class Home extends AppCompatActivity
                 mBottomSheet.show(getSupportFragmentManager(), mBottomSheet.getTag());
             }
         });
+
+        if (ActivityCompat.checkSelfPermission(Home.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(Home.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        fusedLocationProviderClient.requestLocationUpdates(mLocationRequest, locationCallback, Looper.myLooper());
         /*
         googleMap.addMarker(new MarkerOptions()
                     .position(new LatLng(37.7750,-122.4183))
                     .title("Humewood"));
         googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(37.7750,-122.4183), 12));*/
     }
+
+}
+
+
+
+
+
+
+
+
+
+
+/*
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
@@ -846,4 +918,27 @@ public class Home extends AppCompatActivity
         mLastLocation = location;
         displayLocation();
     }
-}
+private void buildGoogleApiClient() {
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
+        mGoogleApiClient.connect();
+    }
+
+    private boolean checkPlayServices() {
+        int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
+        if(resultCode != ConnectionResult.SUCCESS) {
+            if (GooglePlayServicesUtil.isUserRecoverableError(resultCode))
+                GooglePlayServicesUtil.getErrorDialog(resultCode, this, PLAY_SERVICE_RES_REQUEST).show();
+            else {
+                Toast.makeText(this, "This device is not supported", Toast.LENGTH_LONG).show();
+                finish();
+            }
+            return false;
+        }
+        return true;
+    }
+
+ */
