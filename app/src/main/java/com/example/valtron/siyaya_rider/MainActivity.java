@@ -157,26 +157,26 @@ public class MainActivity extends AppCompatActivity {
 
                     AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
                         @Override
-                        public void onSuccess(Account account) {
+                        public void onSuccess(final Account account) {
                             final String userPhone = account.getPhoneNumber().toString();
 
-                            users.orderByKey().equalTo(userPhone)
+                            users.orderByKey().equalTo(account.getId())
                                     .addListenerForSingleValueEvent(new ValueEventListener() {
                                         @Override
                                         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                            if(!dataSnapshot.child(userPhone).exists()) {
+                                            if(!dataSnapshot.child(account.getId()).exists()) {
                                                 Rider user = new Rider();
-                                                user.setPhone(userPhone);
-                                                user.setName(userPhone);
+                                                user.setPhone(account.getPhoneNumber().toString());
+                                                user.setName(account.getPhoneNumber().toString());
                                                 user.setAvatarUrl("");
                                                 //user.setRates("0.0");
 
-                                                users.child(userPhone)
+                                                users.child(account.getId())
                                                         .setValue(user)
                                                         .addOnSuccessListener(new OnSuccessListener<Void>() {
                                                             @Override
                                                             public void onSuccess(Void aVoid) {
-                                                                users.child(userPhone)
+                                                                users.child(account.getId())
                                                                         .addListenerForSingleValueEvent(new ValueEventListener() {
                                                                             @Override
                                                                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -203,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
                                                 });
                                             }
                                             else {
-                                                users.child(userPhone)
+                                                users.child(account.getId())
                                                         .addListenerForSingleValueEvent(new ValueEventListener() {
                                                             @Override
                                                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {

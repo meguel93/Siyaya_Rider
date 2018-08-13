@@ -21,27 +21,32 @@ import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import com.google.gson.Gson;
 
+import java.util.Map;
+
 public class MyFirebaseMessaging extends FirebaseMessagingService {
 
     @Override
     public void onMessageReceived(final RemoteMessage remoteMessage) {
-        if(remoteMessage.getNotification().getTitle().equals("Cancelled")) {
-            Handler handler = new Handler(Looper.getMainLooper());
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(MyFirebaseMessaging.this, "" + remoteMessage.getNotification().getBody(), Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-        else if(remoteMessage.getNotification().getTitle().equals("Arrived")) {
-            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                showArrivedNotificationAPI26(remoteMessage.getNotification().getBody());
-            else
-                showArrivedNotification(remoteMessage.getNotification().getBody());
-        }
+        if (remoteMessage.getData() != null) {
+            Map<String, String> data = remoteMessage.getData();
+            String title = data.get("title");
+            final String message = data.get("message");
+            if (title.equals("Cancelled")) {
+                Handler handler = new Handler(Looper.getMainLooper());
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MyFirebaseMessaging.this, message, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } else if (title.equals("Arrived")) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                    showArrivedNotificationAPI26(message);
+                else
+                    showArrivedNotification(message);
+            }
 
-        /**/
+            /**/
         /*LatLng customer_location = new Gson().fromJson(remoteMessage.getNotification().getBody(), LatLng.class);
 
         Intent intent = new Intent(getBaseContext(), CommuterCall.class);
@@ -49,6 +54,7 @@ public class MyFirebaseMessaging extends FirebaseMessagingService {
         intent.putExtra("lng",customer_location.longitude);
 
         startActivity(intent);*/
+        }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)

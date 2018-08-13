@@ -10,7 +10,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
 
-import com.example.valtron.siyaya_rider.Model.Notification;
 import com.example.valtron.siyaya_rider.R;
 
 public class NotificationHelper extends ContextWrapper {

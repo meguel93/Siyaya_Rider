@@ -34,10 +34,9 @@ import android.widget.Toast;
 
 import com.example.valtron.siyaya_rider.Common.Common;
 import com.example.valtron.siyaya_rider.Helper.CustomInfoWindow;
+import com.example.valtron.siyaya_rider.Model.DataMessage;
 import com.example.valtron.siyaya_rider.Model.FCMResponse;
-import com.example.valtron.siyaya_rider.Model.Notification;
 import com.example.valtron.siyaya_rider.Model.Rider;
-import com.example.valtron.siyaya_rider.Model.Sender;
 import com.example.valtron.siyaya_rider.Model.Token;
 import com.example.valtron.siyaya_rider.Remote.IFCMService;
 import com.facebook.accountkit.Account;
@@ -309,13 +308,19 @@ public class Home extends AppCompatActivity
                         for (DataSnapshot postSnapShot : dataSnapshot.getChildren()) {
                             Token token = postSnapShot.getValue(Token.class);
 
-                            String json_lat_lng = new Gson().toJson(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+                            //String json_lat_lng = new Gson().toJson(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
                             String riderToken = FirebaseInstanceId.getInstance().getToken();
-                            Notification data = new Notification(riderToken, json_lat_lng);
+                            /*Notification data = new Notification(riderToken, json_lat_lng);
 
-                            Sender content = new Sender(token.getToken(), data);
+                            Sender content = new Sender(token.getToken(), data);*/
 
-                            mService.sendMessage(content)
+                            Map<String,String> content = new HashMap<>();
+                            content.put("customer", riderToken);
+                            content.put("lat", String.valueOf(mLastLocation.getLatitude()));
+                            content.put("lng", String.valueOf(mLastLocation.getLongitude()));
+                            DataMessage dataMessage = new DataMessage(token.getToken(), content);
+
+                            mService.sendMessage(dataMessage)
                                     .enqueue(new Callback<FCMResponse>() {
                                         @Override
                                         public void onResponse(Call<FCMResponse> call, Response<FCMResponse> response) {
