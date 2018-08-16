@@ -8,8 +8,8 @@
             android:id="@+id/nav_trip_history"
             android:title="Trip History" />
         <item
-            android:id="@+id/nav_help"
-            android:title="Help" />
+            android:id="@+id/nav_route"
+            android:title="Routes" />
         <item android:title="Settings">
             <menu>
                 <item

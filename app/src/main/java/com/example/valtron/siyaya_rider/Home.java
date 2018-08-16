@@ -29,6 +29,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -129,6 +130,8 @@ public class Home extends AppCompatActivity
 
     Marker mUserMarker, DestinationMarker;
 
+    RadioButton town,central,summer,forest,green;
+
     ImageView imgExpandable;
     ButtonSheetRiderFragment mButtonSheet;
     Button btnPickupRequest;
@@ -154,6 +157,10 @@ public class Home extends AppCompatActivity
 
     FirebaseStorage firebaseStorage;
     StorageReference storageReference;
+
+    //Route
+    ImageView town_route, forest_route, summer_route, central_route, green_route;
+    boolean isDriverF;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -191,6 +198,15 @@ public class Home extends AppCompatActivity
         txtStars.setText("0.0");
         imageAvatar = (CircleImageView) navigationHeaderView.findViewById(R.id.imageAvatar);
 
+        town_route = (ImageView)findViewById(R.id.select_town);
+        summer_route = (ImageView)findViewById(R.id.select_summer);
+        green_route = (ImageView)findViewById(R.id.select_green);
+        central_route = (ImageView)findViewById(R.id.select_central);
+        forest_route = (ImageView)findViewById(R.id.select_forest);
+
+
+
+        summer.setChecked(true);
         if (Common.current_user.getAvatarUrl() != null && !TextUtils.isEmpty(Common.current_user.getAvatarUrl()))
             Picasso.with(this)
                     .load(Common.current_user.getAvatarUrl())
@@ -201,7 +217,7 @@ public class Home extends AppCompatActivity
         mapFragment.getMapAsync(this);
 
 
-        imgExpandable = (ImageView) findViewById(R.id.imgExpandle);
+        //imgExpandable = (ImageView) findViewById(R.id.imgExpandle);
         /*//mButtonSheet = ButtonSheetRiderFragment.newInstance("Rider bottom sheet");
         imgExpandable.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -450,14 +466,6 @@ public class Home extends AppCompatActivity
         };
     }
 
-    /*private void buildLocationRequest() {
-        mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(UPDATE_INTERVAL);
-        mLocationRequest.setFastestInterval(FASTEST_INTERVAL);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        mLocationRequest.setSmallestDisplacement(DISPLACEMENT);
-    }*/
-
     private void displayLocation() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -529,7 +537,17 @@ public class Home extends AppCompatActivity
         mMap.addMarker(new MarkerOptions().position(location)
                 .title("You"));
 
-        DatabaseReference driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl);
+        DatabaseReference driverLocation = null;
+        if(town.isChecked())
+            driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Town");
+        if(summer.isChecked())
+            driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Summerstrand");
+        if(forest.isChecked())
+            driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Forest Hill");
+        if(central.isChecked())
+            driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Central");
+        if(green.isChecked())
+            driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Town");
         GeoFire gf = new GeoFire(driverLocation);
 
         GeoQuery geoQuery = gf.queryAtLocation(new GeoLocation(location.latitude, location.longitude), distance);
@@ -634,7 +652,8 @@ public class Home extends AppCompatActivity
         int id = item.getItemId();
         if (id == R.id.nav_trip_history) {
             // Handle the camera action
-        } else if (id == R.id.nav_help) {
+        } else if (id == R.id.nav_route) {
+            showRouteDialog();
 
         } else if (id == R.id.nav_update_info) {
             showUpdateInfoDialog();
@@ -656,6 +675,62 @@ public class Home extends AppCompatActivity
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    private void showRouteDialog() {
+        final AlertDialog.Builder dialog = new AlertDialog.Builder(this);
+        dialog.setTitle("Choose Your Route");
+        //dialog.setMessage("Please use email to sign in");
+
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View layout_route = inflater.inflate(R.layout.layout_update_route, null);
+
+        town = layout_route.findViewById(R.id.town_route);
+        central = layout_route.findViewById(R.id.central_route);
+        summer = layout_route.findViewById(R.id.summer_route);
+        forest = layout_route.findViewById(R.id.forest_route);
+        green = layout_route.findViewById(R.id.green_route);
+
+        if(town.isChecked() == true) {
+            mMap.clear();
+            loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+        }
+        if(central.isChecked() == true) {
+            mMap.clear();
+            loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+        }
+        if(summer.isChecked() == true) {
+            mMap.clear();
+            loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+        }
+        if(forest.isChecked() == true) {
+            mMap.clear();
+            loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+        }
+        if(green.isChecked() == true) {
+            mMap.clear();
+            loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+        }
+
+        dialog.setView(layout_route);
+
+        dialog.setPositiveButton("UPDATE", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                final android.app.AlertDialog waitingDialog = new SpotsDialog(Home.this);
+                waitingDialog.show();
+            }
+        });
+
+        dialog.setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        dialog.show();
     }
 
     private void showUpdateInfoDialog() {
@@ -891,6 +966,13 @@ public class Home extends AppCompatActivity
 
 
 
+    /*private void buildLocationRequest() {
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(UPDATE_INTERVAL);
+        mLocationRequest.setFastestInterval(FASTEST_INTERVAL);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        mLocationRequest.setSmallestDisplacement(DISPLACEMENT);
+    }*/
 
 /*
 

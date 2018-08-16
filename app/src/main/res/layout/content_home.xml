@@ -25,15 +25,53 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <ImageView
-                android:id="@+id/imgExpandle"
-                android:layout_alignParentRight="true"
-                android:src="@drawable/ic_keyboard_arrow_up_black_24dp"
+            <LinearLayout
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="4dp"
+                android:layout_centerHorizontal="true"
+                android:id="@+id/select_route"
+                android:orientation="horizontal"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content">
+
+                <ImageView
+                    android:id="@+id/select_town"
+                    android:layout_marginRight="5dp"
+                    android:src="@drawable/ic_airport_shuttle_black_24dp"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp" />
+
+                <ImageView
+                    android:id="@+id/select_central"
+                    android:layout_marginRight="5dp"
+                    android:src="@drawable/ic_airport_shuttle_black_24dp"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp" />
+
+                <ImageView
+                    android:id="@+id/select_forest"
+                    android:layout_marginRight="5dp"
+                    android:src="@drawable/ic_airport_shuttle_black_24dp"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp" />
+
+                <ImageView
+                    android:id="@+id/select_green"
+                    android:layout_marginRight="5dp"
+                    android:src="@drawable/ic_airport_shuttle_black_24dp"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp" />
+
+                <ImageView
+                    android:id="@+id/select_summer"
+                    android:layout_marginRight="5dp"
+                    android:src="@drawable/ic_airport_shuttle_black_24dp"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp" />
+
+            </LinearLayout>
 
             <Button
-                android:layout_below="@id/imgExpandle"
                 android:id="@+id/btnPickupRequest"
                 android:text="Request Pick Up"
                 android:background="@drawable/btn_sign_in_background"
