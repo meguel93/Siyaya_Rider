@@ -1,15 +1,16 @@
 package com.example.valtron.siyaya_rider.Model;
 
 public class Rider {
-    private String name, phone, avatarUrl;
+    private String name, phone, avatarUrl, route;
 
     public Rider() {
     }
 
-    public Rider(String name, String phone, String avatarUrl) {
+    public Rider(String name, String phone, String avatarUrl, String route) {
         this.name = name;
         this.phone = phone;
         this.avatarUrl = avatarUrl;
+        this.route = route;
     }
 
     public String getName() {
@@ -34,5 +35,13 @@ public class Rider {
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
+    }
+
+    public String getRoute() {
+        return route;
+    }
+
+    public void setRoute(String route) {
+        this.route = route;
     }
 }

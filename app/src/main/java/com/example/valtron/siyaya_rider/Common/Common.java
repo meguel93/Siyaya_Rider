@@ -28,7 +28,7 @@ public class Common {
     public static final String user_field = "user";
     public static final String pwd_field = "password";
     public static final int PICK_IMAGE_REQUEST = 9999;
-    public static Location mLastLocation;
+    public static Location mLastLocation = null;
 
     public static double getPrice(double km, int min)
     {

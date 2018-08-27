@@ -9,6 +9,7 @@
     app:cardElevation="10dp">
 
     <RadioGroup
+        android:id="@+id/radioGroup"
         android:orientation="vertical"
         android:layout_margin="20dp"
         android:layout_width="match_parent"
@@ -17,9 +18,8 @@
         <RadioButton
             android:id="@+id/summer_route"
             android:text="Summerstrand"
-            android:checked="true"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"/>
 
         <RadioButton
             android:id="@+id/town_route"
@@ -31,13 +31,13 @@
             android:id="@+id/central_route"
             android:text="Central"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"/>
 
         <RadioButton
             android:id="@+id/forest_route"
             android:text="Forest Hill"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"/>
 
         <RadioButton
             android:id="@+id/green_route"

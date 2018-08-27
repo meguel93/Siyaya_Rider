@@ -100,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
             AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
                 @Override
                 public void onSuccess(Account account) {
-                    users.child(account.getPhoneNumber().toString())
+                    users.child(account.getId())
                             .addListenerForSingleValueEvent(new ValueEventListener() {
                                 @Override
                                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -128,6 +128,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
+
     private void signInWithPhone() {
         Intent intent = new Intent(MainActivity.this, AccountKitActivity.class);
         AccountKitConfiguration.AccountKitConfigurationBuilder configurationBuilder =
@@ -165,11 +166,11 @@ public class MainActivity extends AppCompatActivity {
                                         @Override
                                         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                                             if(!dataSnapshot.child(account.getId()).exists()) {
-                                                Rider user = new Rider();
+                                                final Rider user = new Rider();
                                                 user.setPhone(account.getPhoneNumber().toString());
                                                 user.setName(account.getPhoneNumber().toString());
                                                 user.setAvatarUrl("");
-                                                //user.setRates("0.0");
+                                                user.setRoute("Town");
 
                                                 users.child(account.getId())
                                                         .setValue(user)

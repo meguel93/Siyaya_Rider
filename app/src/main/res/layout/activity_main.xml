@@ -6,7 +6,8 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity"
     android:background="@drawable/siyayarider"
-    android:id="@+id/rootLayout">
+    android:id="@+id/rootLayout"
+    android:theme="@style/AppTheme.NoActionBar">
 
     <LinearLayout
         android:orientation="vertical"

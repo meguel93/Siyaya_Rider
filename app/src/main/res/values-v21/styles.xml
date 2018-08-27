@@ -1,7 +1,6 @@
 <resources>
 
-    <!--<style name="A" parent="android:Theme.Material.Light.NoActionBar.TranslucentDecor" >
-        <item name="android:colorAccent">@color/btnSignIn</item>
-        <item name="android:statusBarColor">@color/btnSignIn</item>
-    </style>-->
+    <style name="AppTheme.ActionBar.Transparent" parent="AppTheme" >
+        <item name="colorPrimary">@android:color/transparent</item>
+    </style>
 </resources>
