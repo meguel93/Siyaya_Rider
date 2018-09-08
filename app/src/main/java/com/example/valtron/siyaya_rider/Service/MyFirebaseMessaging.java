@@ -12,8 +12,10 @@ import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.widget.Toast;
 //import com.example.valtron.siyaya_rider.CommuterCall;
+import com.example.valtron.siyaya_rider.Common.Common;
 import com.example.valtron.siyaya_rider.Helper.NotificationHelper;
 import com.example.valtron.siyaya_rider.R;
 import com.google.android.gms.maps.model.LatLng;
@@ -39,6 +41,9 @@ public class MyFirebaseMessaging extends FirebaseMessagingService {
                         Toast.makeText(MyFirebaseMessaging.this, message, Toast.LENGTH_SHORT).show();
                     }
                 });
+
+                LocalBroadcastManager.getInstance(MyFirebaseMessaging.this)
+                        .sendBroadcast(new Intent(Common.CANCEL_BROADCAST_STRING));
             } else if (title.equals("Arrived")) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                     showArrivedNotificationAPI26(message);

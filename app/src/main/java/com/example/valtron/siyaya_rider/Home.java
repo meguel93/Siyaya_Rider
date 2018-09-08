@@ -2,8 +2,11 @@ package com.example.valtron.siyaya_rider;
 
 import android.Manifest;
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
@@ -15,6 +18,7 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.SwitchCompat;
 import android.text.TextUtils;
@@ -174,6 +178,17 @@ public class Home extends AppCompatActivity
     FloatingActionButton floatingActionButton;
     String route_ = "";
 
+    private BroadcastReceiver mCancelBroadCast = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            floatingActionButton.setBackgroundResource(R.drawable.ic_phone_24dp);
+            floatingActionButton.setBackgroundColor(Color.parseColor("#0652DD"));
+
+            Common.driverId = "";
+            isDriverFound = false;
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -181,6 +196,8 @@ public class Home extends AppCompatActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         floatingActionButton = findViewById(R.id.fab);
 
+        LocalBroadcastManager.getInstance(this)
+                .registerReceiver(mCancelBroadCast, new IntentFilter(Common.CANCEL_BROADCAST_STRING));
 
         toolbar.setBackgroundColor(Color.TRANSPARENT);
         setSupportActionBar(toolbar);
