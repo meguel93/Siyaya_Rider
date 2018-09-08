@@ -12,8 +12,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.design.bottomappbar.BottomAppBar;
 import android.support.design.widget.BottomNavigationView;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
@@ -115,7 +113,10 @@ import static com.example.valtron.siyaya_rider.Common.Common.current_user;
 import static com.example.valtron.siyaya_rider.Common.Common.mLastLocation;
 
 public class Home extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback, ValueEventListener {
+        implements NavigationView.OnNavigationItemSelectedListener,
+        OnMapReadyCallback,
+        ValueEventListener,
+        GoogleMap.OnInfoWindowClickListener {
 
     SupportMapFragment mapFragment;
 
@@ -149,7 +150,6 @@ public class Home extends AppCompatActivity
     //Button btnPickupRequest;
 
     boolean isDriverFound = false;
-    String driverId = "";
     int radius = 1; //In km
     int distance = 1;
     private static final int LIMIT = 3;
@@ -170,7 +170,7 @@ public class Home extends AppCompatActivity
     FirebaseStorage firebaseStorage;
     StorageReference storageReference;
 
-    BottomAppBar bottomAppBar;
+    //BottomAppBar bottomAppBar;
     FloatingActionButton floatingActionButton;
     String route_ = "";
 
@@ -179,15 +179,12 @@ public class Home extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        bottomAppBar = findViewById(R.id.bottom_app_bar);
         floatingActionButton = findViewById(R.id.fab);
 
 
         toolbar.setBackgroundColor(Color.TRANSPARENT);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-
-        setSupportActionBar(bottomAppBar);
 
         Window window = this.getWindow();
 
@@ -250,17 +247,6 @@ public class Home extends AppCompatActivity
         txtStars.setText("0.0");
         imageAvatar = (CircleImageView) navigationHeaderView.findViewById(R.id.imageAvatar);
 
-        /*if(radioButton.getText().equals("Town"))
-            route_ = "Town";
-        else if(radioButton.getText().equals("Central"))
-            route_ = "Central";
-        else if(radioButton.getText().equals("Summerstrand"))
-            route_ = "Summerstrand";
-        else if(radioButton.getText().equals("Forest Hill"))
-            route_ = "Forest Hill";
-        else if(radioButton.getText().equals("Greenacres"))
-            route_ = "Greenacres";*/
-
         if (Common.current_user.getAvatarUrl() != null && !TextUtils.isEmpty(Common.current_user.getAvatarUrl()))
             Picasso.with(this)
                     .load(Common.current_user.getAvatarUrl())
@@ -286,7 +272,7 @@ public class Home extends AppCompatActivity
                         }
                     });
                 else
-                    sendRequestToDriver(driverId);
+                    Common.sendRequestToDriver(Common.driverId, mService, getBaseContext(), mLastLocation);
             }
         });
 
@@ -356,54 +342,6 @@ public class Home extends AppCompatActivity
         });
     }
 
-    private void sendRequestToDriver(String driverId) {
-        DatabaseReference tokens = FirebaseDatabase.getInstance().getReference(Common.token_tbl);
-
-        tokens.orderByKey().equalTo(driverId)
-                .addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                        for (DataSnapshot postSnapShot : dataSnapshot.getChildren()) {
-                            Token token = postSnapShot.getValue(Token.class);
-
-                            //String json_lat_lng = new Gson().toJson(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
-                            String riderToken = FirebaseInstanceId.getInstance().getToken();
-                            /*Notification data = new Notification(riderToken, json_lat_lng);
-
-                            Sender content = new Sender(token.getToken(), data);*/
-
-                            Map<String,String> content = new HashMap<>();
-                            content.put("customer", riderToken);
-                            content.put("lat", String.valueOf(mLastLocation.getLatitude()));
-                            content.put("lng", String.valueOf(mLastLocation.getLongitude()));
-                            DataMessage dataMessage = new DataMessage(token.getToken(), content);
-
-                            mService.sendMessage(dataMessage)
-                                    .enqueue(new Callback<FCMResponse>() {
-                                        @Override
-                                        public void onResponse(Call<FCMResponse> call, Response<FCMResponse> response) {
-                                            if (response.body().success == 1)
-                                                Toast.makeText(Home.this, "Request sent!", Toast.LENGTH_SHORT).show();
-                                            else
-                                                Toast.makeText(Home.this, "Failed!", Toast.LENGTH_SHORT).show();
-                                        }
-
-                                        @Override
-                                        public void onFailure(Call<FCMResponse> call, Throwable t) {
-                                            Log.e("ERROR", t.getMessage());
-                                        }
-                                    });
-
-                        }
-                    }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                    }
-                });
-    }
-
     private void requestPickupHere(String uid) {
         DatabaseReference dbRequest = FirebaseDatabase.getInstance().getReference(Common.pickup_request_tbl);
         GeoFire mGeoFire = new GeoFire(dbRequest);
@@ -434,19 +372,27 @@ public class Home extends AppCompatActivity
 
     private void findDriver() {
         DatabaseReference driverLocation;
-        if(route_.equals("Town"))
-            driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Town");
-        else if(route_.equals("Summerstrand"))
-            driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Summerstrand");
-        else if(route_.equals("Forest Hill"))
-            driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Forest Hill");
-        else if(route_.equals("Central"))
-            driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Central");
-        else
-            driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Greenacres");
+        switch (route_) {
+            case "Town":
+                driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Town");
+                break;
+            case "Summerstrand":
+                driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Summerstrand");
+                break;
+            case "Forest Hill":
+                driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Forest Hill");
+                break;
+            case "Central":
+                driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Central");
+                break;
+            default:
+                driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Greenacres");
+                break;
+        }
         GeoFire gf = new GeoFire(driverLocation);
 
-        final GeoQuery geoQuery = gf.queryAtLocation(new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()), radius);
+        final GeoQuery geoQuery = gf.queryAtLocation(new GeoLocation(mLastLocation.getLatitude(),
+                mLastLocation.getLongitude()), radius);
 
         geoQuery.removeAllListeners();
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
@@ -454,7 +400,7 @@ public class Home extends AppCompatActivity
             public void onKeyEntered(String key, GeoLocation location) {
                 if (!isDriverFound) {
                     isDriverFound = true;
-                    driverId = key;
+                    Common.driverId = key;
                     floatingActionButton.setBackgroundColor(Color.parseColor("#32ff7e"));
                     //btnPickupRequest.setText("CALL DRIVER");
                     //Toast.makeText(Home.this, ""+key, Toast.LENGTH_SHORT).show();
@@ -505,11 +451,13 @@ public class Home extends AppCompatActivity
 
     private void setUpLocation() {
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
 
             ActivityCompat.requestPermissions(this, new String[]{
                     android.Manifest.permission.ACCESS_COARSE_LOCATION,
-                    android.Manifest.permission.ACCESS_FINE_LOCATION
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.CALL_PHONE
             }, MY_PERMISSION_REQUEST_CODE);
         } else {
             //buildLocationRequest();
@@ -648,7 +596,7 @@ public class Home extends AppCompatActivity
                                                     .position(new LatLng(location.latitude, location.longitude))
                                                     .flat(true)
                                                     .title(rider.getName())
-                                                    .snippet("Phone : " + rider.getPhone())
+                                                    .snippet("Driver ID : " + dataSnapshot.getKey())
                                                     .icon(BitmapDescriptorFactory.fromResource(R.drawable.top)));
 
                                         }
@@ -659,7 +607,7 @@ public class Home extends AppCompatActivity
                                                     .position(new LatLng(location.latitude, location.longitude))
                                                     .flat(true)
                                                     .title(rider.getName())
-                                                    .snippet("Phone : " + rider.getPhone())
+                                                    .snippet("Driver ID : " + dataSnapshot.getKey())
                                                     .icon(BitmapDescriptorFactory.fromResource(R.drawable.top)));
 
                                         }
@@ -670,7 +618,7 @@ public class Home extends AppCompatActivity
                                                     .position(new LatLng(location.latitude, location.longitude))
                                                     .flat(true)
                                                     .title(rider.getName())
-                                                    .snippet("Phone : " + rider.getPhone())
+                                                    .snippet("Driver ID : " + dataSnapshot.getKey())
                                                     .icon(BitmapDescriptorFactory.fromResource(R.drawable.top)));
 
                                         }
@@ -681,7 +629,7 @@ public class Home extends AppCompatActivity
                                                     .position(new LatLng(location.latitude, location.longitude))
                                                     .flat(true)
                                                     .title(rider.getName())
-                                                    .snippet("Phone : " + rider.getPhone())
+                                                    .snippet("Driver ID : " + dataSnapshot.getKey())
                                                     .icon(BitmapDescriptorFactory.fromResource(R.drawable.top)));
 
                                         }
@@ -692,7 +640,7 @@ public class Home extends AppCompatActivity
                                                     .position(new LatLng(location.latitude, location.longitude))
                                                     .flat(true)
                                                     .title(rider.getName())
-                                                    .snippet("Phone : " + rider.getPhone())
+                                                    .snippet("Driver ID : " + dataSnapshot.getKey())
                                                     .icon(BitmapDescriptorFactory.fromResource(R.drawable.top)));
 
                                         }
@@ -1212,6 +1160,8 @@ public class Home extends AppCompatActivity
             }
         });
 
+        mMap.setOnInfoWindowClickListener(this);
+
         if (ActivityCompat.checkSelfPermission(Home.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(Home.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
@@ -1242,12 +1192,24 @@ public class Home extends AppCompatActivity
 
     @Override
     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-        loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+        loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(),
+                mLastLocation.getLongitude()));
     }
 
     @Override
     public void onCancelled(@NonNull DatabaseError databaseError) {
 
+    }
+
+    @Override
+    public void onInfoWindowClick(Marker marker) {
+        if(!marker.getTitle().equals("You")) {
+            Intent intent = new Intent(Home.this, CallDriver.class);
+            intent.putExtra("driverId", marker.getSnippet().replaceAll("\\D+", ""));
+            intent.putExtra("lat", mLastLocation.getLatitude());
+            intent.putExtra("lng", mLastLocation.getLongitude());
+            startActivity(intent);
+        }
     }
 }
 

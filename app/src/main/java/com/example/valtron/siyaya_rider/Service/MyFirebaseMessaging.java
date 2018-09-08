@@ -45,15 +45,6 @@ public class MyFirebaseMessaging extends FirebaseMessagingService {
                 else
                     showArrivedNotification(message);
             }
-
-            /**/
-        /*LatLng customer_location = new Gson().fromJson(remoteMessage.getNotification().getBody(), LatLng.class);
-
-        Intent intent = new Intent(getBaseContext(), CommuterCall.class);
-        intent.putExtra("lat",customer_location.latitude);
-        intent.putExtra("lng",customer_location.longitude);
-
-        startActivity(intent);*/
         }
     }
 
@@ -70,10 +61,6 @@ public class MyFirebaseMessaging extends FirebaseMessagingService {
     }
 
     private void showArrivedNotification(String body) {
-        /*Reminder!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-        //This code only works for android api 25 and below
-        //For +25 you need to create a channel
-        //Check out tutorial on EDMTDev youtube channel
         PendingIntent contentIntent = PendingIntent.getActivity(getBaseContext(),
                 0, new Intent(), PendingIntent.FLAG_ONE_SHOT);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(getBaseContext());
