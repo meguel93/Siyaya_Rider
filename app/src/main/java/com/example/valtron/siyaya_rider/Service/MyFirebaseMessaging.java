@@ -17,8 +17,15 @@ import android.widget.Toast;
 //import com.example.valtron.siyaya_rider.CommuterCall;
 import com.example.valtron.siyaya_rider.Common.Common;
 import com.example.valtron.siyaya_rider.Helper.NotificationHelper;
+import com.example.valtron.siyaya_rider.Model.Token;
 import com.example.valtron.siyaya_rider.R;
+import com.facebook.accountkit.Account;
+import com.facebook.accountkit.AccountKit;
+import com.facebook.accountkit.AccountKitCallback;
+import com.facebook.accountkit.AccountKitError;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import com.google.gson.Gson;
@@ -26,6 +33,12 @@ import com.google.gson.Gson;
 import java.util.Map;
 
 public class MyFirebaseMessaging extends FirebaseMessagingService {
+
+    @Override
+    public void onNewToken(String s) {
+        super.onNewToken(s);
+        updateTokenToServer(s);
+    }
 
     @Override
     public void onMessageReceived(final RemoteMessage remoteMessage) {
@@ -53,6 +66,26 @@ public class MyFirebaseMessaging extends FirebaseMessagingService {
         }
     }
 
+    private void updateTokenToServer(final String refreshedToken) {
+        FirebaseDatabase db = FirebaseDatabase.getInstance();
+        final DatabaseReference tokens = db.getReference(Common.token_tbl);
+
+        AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
+            @Override
+            public void onSuccess(Account account) {
+                Token token = new Token(refreshedToken);
+                tokens.child(account.getId())
+                        .setValue(token);;
+            }
+
+            @Override
+            public void onError(AccountKitError accountKitError) {
+
+            }
+        });
+
+    }
+
     @RequiresApi(api = Build.VERSION_CODES.O)
     private void showArrivedNotificationAPI26(String body) {
         PendingIntent contentIntent = PendingIntent.getActivity(getBaseContext(),
@@ -63,6 +96,9 @@ public class MyFirebaseMessaging extends FirebaseMessagingService {
         Notification.Builder builder = notificationHelper.getSiyayaNotification("Arrived", body, contentIntent, defaultSound);
 
         notificationHelper.getManager().notify(1, builder.build());
+
+        LocalBroadcastManager.getInstance(MyFirebaseMessaging.this)
+                .sendBroadcast(new Intent(Common.BROADCAST_ARRIVED));
     }
 
     private void showArrivedNotification(String body) {
@@ -79,5 +115,8 @@ public class MyFirebaseMessaging extends FirebaseMessagingService {
                 .setContentIntent(contentIntent);
         NotificationManager manager = (NotificationManager)getBaseContext().getSystemService(Context.NOTIFICATION_SERVICE);
         manager.notify(1, builder.build());
+
+        LocalBroadcastManager.getInstance(MyFirebaseMessaging.this)
+                .sendBroadcast(new Intent(Common.BROADCAST_ARRIVED));
     }
 }

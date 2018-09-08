@@ -86,13 +86,13 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
@@ -181,13 +181,26 @@ public class Home extends AppCompatActivity
     private BroadcastReceiver mCancelBroadCast = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            floatingActionButton.setBackgroundResource(R.drawable.ic_phone_24dp);
-            floatingActionButton.setBackgroundColor(Color.parseColor("#0652DD"));
-
             Common.driverId = "";
             isDriverFound = false;
+
+            floatingActionButton.setBackgroundResource(R.drawable.ic_phone_24dp);
+            floatingActionButton.setBackgroundColor(Color.parseColor("#0652DD"));
+            floatingActionButton.setEnabled(true);
         }
     };
+
+    /*private BroadcastReceiver mArrived = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Common.driverId = "";
+            isDriverFound = false;
+
+            floatingActionButton.setBackgroundResource(R.drawable.ic_phone_24dp);
+            floatingActionButton.setBackgroundColor(Color.parseColor("#0652DD"));
+            floatingActionButton.setEnabled(true);
+        }
+    };*/
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -198,6 +211,9 @@ public class Home extends AppCompatActivity
 
         LocalBroadcastManager.getInstance(this)
                 .registerReceiver(mCancelBroadCast, new IntentFilter(Common.CANCEL_BROADCAST_STRING));
+
+        LocalBroadcastManager.getInstance(this)
+                .registerReceiver(mCancelBroadCast, new IntentFilter(Common.BROADCAST_ARRIVED));
 
         toolbar.setBackgroundColor(Color.TRANSPARENT);
         setSupportActionBar(toolbar);
@@ -288,8 +304,10 @@ public class Home extends AppCompatActivity
 
                         }
                     });
-                else
+                else {
+                    floatingActionButton.setEnabled(false);
                     Common.sendRequestToDriver(Common.driverId, mService, getBaseContext(), mLastLocation);
+                }
             }
         });
 
@@ -343,13 +361,26 @@ public class Home extends AppCompatActivity
     private void updateFirebaseToken() {
         AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
             @Override
-            public void onSuccess(Account account) {
+            public void onSuccess(final Account account) {
                 FirebaseDatabase db = FirebaseDatabase.getInstance();
-                DatabaseReference tokens = db.getReference(Common.token_tbl);
+                final DatabaseReference tokens = db.getReference(Common.token_tbl);
 
-                Token token = new Token(FirebaseInstanceId.getInstance().getToken());
-                tokens.child(account.getId())
-                        .setValue(token);
+                FirebaseInstanceId.getInstance()
+                        .getInstanceId()
+                        .addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                Toast.makeText(Home.this, "" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            }
+                        })
+                        .addOnSuccessListener(new OnSuccessListener<InstanceIdResult>() {
+                            @Override
+                            public void onSuccess(InstanceIdResult instanceIdResult) {
+                                Token token = new Token(instanceIdResult.getToken());
+                                tokens.child(account.getId())
+                                        .setValue(token);
+                            }
+                        });
             }
 
             @Override
@@ -1227,6 +1258,12 @@ public class Home extends AppCompatActivity
             intent.putExtra("lng", mLastLocation.getLongitude());
             startActivity(intent);
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mCancelBroadCast);
+        super.onDestroy();
     }
 }
 

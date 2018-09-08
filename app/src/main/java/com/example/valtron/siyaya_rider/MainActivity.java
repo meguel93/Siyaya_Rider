@@ -32,8 +32,6 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.AuthResult;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -54,7 +52,6 @@ public class MainActivity extends AppCompatActivity {
 
     TextView txtForgotPassword;
 
-    FirebaseAuth auth;
     FirebaseDatabase db;
     DatabaseReference users;
     RelativeLayout rootDriverLayout;
@@ -77,7 +74,6 @@ public class MainActivity extends AppCompatActivity {
 
         Paper.init(this);
 
-        auth = FirebaseAuth.getInstance();
         db = FirebaseDatabase.getInstance();
         users = db.getReference(Common.user_rider_tbl);
 

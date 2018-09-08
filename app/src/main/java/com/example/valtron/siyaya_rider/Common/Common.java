@@ -54,6 +54,7 @@ public class Common {
     public static Location mLastLocation = null;
     public static String driverId = "";
     public static final String CANCEL_BROADCAST_STRING = "cancel_pickup";
+    public static final String BROADCAST_ARRIVED = "arrived";
 
     public static double getPrice(double km, int min)
     {
