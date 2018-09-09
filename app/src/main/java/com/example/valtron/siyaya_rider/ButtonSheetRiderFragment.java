@@ -3,11 +3,14 @@ package com.example.valtron.siyaya_rider;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.BottomSheetBehavior;
 import android.support.design.widget.BottomSheetDialogFragment;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.example.valtron.siyaya_rider.Common.Common;
@@ -21,16 +24,46 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class ButtonSheetRiderFragment extends BottomSheetDialogFragment {
-    String mLocation, mDestination;
+public class ButtonSheetRiderFragment extends AppCompatActivity {
 
-    boolean TapOnMap;
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-    IGoogleAPI mService;
+        LinearLayout bottom_sheet = findViewById(R.id.bottom_sheet);
 
-    TextView txtMoney, txtLocation, txtDestination;
+        // init the bottom sheet behavior
+        BottomSheetBehavior bottomSheetBehavior = BottomSheetBehavior.from(bottom_sheet);
 
-    public static ButtonSheetRiderFragment newInstance(String location, String destination, boolean TapOnMap)
+        // change the state of the bottom sheet
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+
+        // set the peek height
+        bottomSheetBehavior.setPeekHeight(340);
+
+        // set hideable or not
+        bottomSheetBehavior.setHideable(false);
+
+        // set callback for changes
+        bottomSheetBehavior.setBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+
+            }
+        });
+    }
+
+}
+
+/*
+public static ButtonSheetRiderFragment newInstance(String location, String destination, boolean TapOnMap)
     {
         ButtonSheetRiderFragment f = new ButtonSheetRiderFragment();
         Bundle args = new Bundle();
@@ -41,13 +74,6 @@ public class ButtonSheetRiderFragment extends BottomSheetDialogFragment {
         return f;
     }
 
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        mLocation = getArguments().getString("location");
-        mDestination = getArguments().getString("destination");
-        TapOnMap = getArguments().getBoolean("TapOnMap");
-    }
 
     @Nullable
     @Override
@@ -127,4 +153,5 @@ public class ButtonSheetRiderFragment extends BottomSheetDialogFragment {
             ex.printStackTrace();
         }
     }
-}
+
+ */

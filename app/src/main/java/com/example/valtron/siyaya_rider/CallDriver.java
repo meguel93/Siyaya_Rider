@@ -1,13 +1,18 @@
 package com.example.valtron.siyaya_rider;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -38,10 +43,24 @@ public class CallDriver extends AppCompatActivity {
 
     IFCMService ifcmService;
 
+    private BroadcastReceiver mCancelBroadCast = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Common.driverId = "";
+            Common.isDriverFound = false;
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_call_driver);
+
+        LocalBroadcastManager.getInstance(this)
+                .registerReceiver(mCancelBroadCast, new IntentFilter(Common.CANCEL_BROADCAST_STRING));
+
+        LocalBroadcastManager.getInstance(this)
+                .registerReceiver(mCancelBroadCast, new IntentFilter(Common.BROADCAST_ARRIVED));
 
         ifcmService = Common.getFCMService();
 

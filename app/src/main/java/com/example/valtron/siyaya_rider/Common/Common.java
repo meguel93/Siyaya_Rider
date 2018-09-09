@@ -53,6 +53,7 @@ public class Common {
     public static final int PICK_IMAGE_REQUEST = 9999;
     public static Location mLastLocation = null;
     public static String driverId = "";
+    public static boolean isDriverFound = false;
     public static final String CANCEL_BROADCAST_STRING = "cancel_pickup";
     public static final String BROADCAST_ARRIVED = "arrived";
 

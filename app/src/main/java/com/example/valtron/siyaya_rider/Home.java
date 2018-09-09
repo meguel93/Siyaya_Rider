@@ -149,8 +149,10 @@ public class Home extends AppCompatActivity
     RadioGroup radioGroup;
     RadioButton radioButton;
 
-    /*ImageView imgExpandable;
-    ButtonSheetRiderFragment mButtonSheet;*/
+
+    ButtonSheetRiderFragment mButtonSheet;
+
+    /*ImageView imgExpandable;*/
     //Button btnPickupRequest;
 
     boolean isDriverFound = false;
@@ -187,6 +189,7 @@ public class Home extends AppCompatActivity
             floatingActionButton.setBackgroundResource(R.drawable.ic_phone_24dp);
             floatingActionButton.setBackgroundColor(Color.parseColor("#0652DD"));
             floatingActionButton.setEnabled(true);
+            mUserMarker.hideInfoWindow();
         }
     };
 
@@ -254,25 +257,36 @@ public class Home extends AppCompatActivity
             case "Town":
                 town.setChecked(true);
                 route_ = "Town";
+                availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Town");
+                availableDrivers.addValueEventListener(Home.this);
                 break;
             case "Central":
                 central.setChecked(true);
                 route_ = "Central";
+                availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Central");
+                availableDrivers.addValueEventListener(Home.this);
                 break;
             case "Summerstrand":
                 summer.setChecked(true);
                 route_ = "Summerstrand";
+                availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Summerstrand");
+                availableDrivers.addValueEventListener(Home.this);
                 break;
             case "Forest Hill":
                 forest.setChecked(true);
                 route_ = "Forest Hill";
+                availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Forest Hill");
+                availableDrivers.addValueEventListener(Home.this);
                 break;
             case "Greenacres":
                 green.setChecked(true);
                 route_ = "Greenacres";
+                availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Greenacres");
+                availableDrivers.addValueEventListener(Home.this);
                 break;
         }
-
+        /*if (availableDrivers !=null)
+            availableDrivers.removeEventListener(Home.this);*/
         View navigationHeaderView = navigationView.getHeaderView(0);
         txtRiderName = (TextView) navigationHeaderView.findViewById(R.id.txtRiderName);
         txtRiderName.setText(Common.current_user.getName());
@@ -344,8 +358,8 @@ public class Home extends AppCompatActivity
                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 15.0f));
 
-                ButtonSheetRiderFragment mBottomSheet = ButtonSheetRiderFragment.newInstance(mPlaceLocation, mPlaceDestination, false);
-                mBottomSheet.show(getSupportFragmentManager(), mBottomSheet.getTag());
+                /*ButtonSheetRiderFragment mBottomSheet = ButtonSheetRiderFragment.newInstance(mPlaceLocation, mPlaceDestination, false);
+                mBottomSheet.show(getSupportFragmentManager(), mBottomSheet.getTag());*/
             }
 
             @Override
@@ -816,25 +830,27 @@ public class Home extends AppCompatActivity
         final RadioButton forest = layout_route.findViewById(R.id.forest_route);
         final RadioButton green = layout_route.findViewById(R.id.green_route);
 
-        if(current_user.getRoute().equals("Town")) {
-            town.setChecked(true);
-            route_ = "Town";
-        }
-        if(current_user.getRoute().equals("Central")) {
-            central.setChecked(true);
-            route_ = "Central";
-        }
-        if(current_user.getRoute().equals("Summerstrand")) {
-            summer.setChecked(true);
-            route_ = "Summerstrand";
-        }
-        if(current_user.getRoute().equals("Forest Hill")) {
-            forest.setChecked(true);
-            route_ = "Forest Hill";
-        }
-        if(current_user.getRoute().equals("Greenacres")) {
-            green.setChecked(true);
-            route_ = "Greenacres";
+        switch (current_user.getRoute()) {
+            case "Town":
+                town.setChecked(true);
+                route_ = "Town";
+                break;
+            case "Central":
+                central.setChecked(true);
+                route_ = "Central";
+                break;
+            case "Summerstrand":
+                summer.setChecked(true);
+                route_ = "Summerstrand";
+                break;
+            case "Forest Hill":
+                forest.setChecked(true);
+                route_ = "Forest Hill";
+                break;
+            case "Greenacres":
+                green.setChecked(true);
+                route_ = "Greenacres";
+                break;
         }
 
         AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
@@ -844,17 +860,17 @@ public class Home extends AppCompatActivity
                 Map<String, Object> updateInfo = new HashMap<>();
                 if (town.isChecked())
                     updateInfo.put("route", town.getText().toString());
-                if (central.isChecked())
+                else if (central.isChecked())
                     updateInfo.put("route", central.getText().toString());
-                if (summer.isChecked())
+                else if (summer.isChecked())
                     updateInfo.put("route", summer.getText().toString());
-                if (forest.isChecked())
+                else if (forest.isChecked())
                     updateInfo.put("route", forest.getText().toString());
-                if (green.isChecked())
+                else if (green.isChecked())
                     updateInfo.put("route", green.getText().toString());
 
-                DatabaseReference driverInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
-                driverInformation.child(account.getId())
+                DatabaseReference CommuterInformation = FirebaseDatabase.getInstance().getReference(Common.user_rider_tbl);
+                /*CommuterInformation.child(account.getId())
                         .updateChildren(updateInfo)
                         .addOnCompleteListener(new OnCompleteListener<Void>() {
                             @Override
@@ -866,8 +882,8 @@ public class Home extends AppCompatActivity
 
                                 //waitingDialog.dismiss();
                             }
-                        });
-                driverInformation.child(account.getId())
+                        });*/
+                CommuterInformation.child(account.getId())
                         .addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -910,45 +926,45 @@ public class Home extends AppCompatActivity
                             availableDrivers.addValueEventListener(Home.this);
                             loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
                         }
-                        if (central.isChecked()) {
+                        else if (central.isChecked()) {
                             updateInfo.put("route", central.getText().toString());
                             mMap.clear();
                             if(availableDrivers != null)
                                 availableDrivers.removeEventListener(Home.this);
-                            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(town.getText().toString());
+                            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(central.getText().toString());
                             availableDrivers.addValueEventListener(Home.this);
                             loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
                         }
-                        if (summer.isChecked()) {
+                        else if (summer.isChecked()) {
                             updateInfo.put("route", summer.getText().toString());
                             mMap.clear();
                             if(availableDrivers != null)
                                 availableDrivers.removeEventListener(Home.this);
-                            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(town.getText().toString());
+                            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(summer.getText().toString());
                             availableDrivers.addValueEventListener(Home.this);
                             loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
                         }
-                        if (forest.isChecked()) {
+                        else if (forest.isChecked()) {
                             updateInfo.put("route", forest.getText().toString());
                             mMap.clear();
                             if(availableDrivers != null)
                                 availableDrivers.removeEventListener(Home.this);
-                            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(town.getText().toString());
+                            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(forest.getText().toString());
                             availableDrivers.addValueEventListener(Home.this);
                             loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
                         }
-                        if (green.isChecked()) {
+                        else if (green.isChecked()) {
                             updateInfo.put("route", green.getText().toString());
                             mMap.clear();
                             if(availableDrivers != null)
                                 availableDrivers.removeEventListener(Home.this);
-                            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(town.getText().toString());
+                            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(green.getText().toString());
                             availableDrivers.addValueEventListener(Home.this);
                             loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
                         }
 
-                        DatabaseReference driverInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
-                        driverInformation.child(account.getId())
+                        DatabaseReference CommuterInformation = FirebaseDatabase.getInstance().getReference(Common.user_rider_tbl);
+                        CommuterInformation.child(account.getId())
                                 .updateChildren(updateInfo)
                                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                                     @Override
@@ -961,7 +977,7 @@ public class Home extends AppCompatActivity
                                         waitingDialog.dismiss();
                                     }
                                 });
-                        driverInformation.child(account.getId())
+                        CommuterInformation.child(account.getId())
                                 .addListenerForSingleValueEvent(new ValueEventListener() {
                                     @Override
                                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -1107,7 +1123,7 @@ public class Home extends AppCompatActivity
                                                 Map<String, Object> avatarUpdate = new HashMap<>();
                                                 avatarUpdate.put("avatarUrl", uri.toString());
 
-                                                DatabaseReference CommuterInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
+                                                DatabaseReference CommuterInformation = FirebaseDatabase.getInstance().getReference(Common.user_rider_tbl);
                                                 CommuterInformation.child(account.getId())
                                                         .updateChildren(avatarUpdate)
                                                         .addOnCompleteListener(new OnCompleteListener<Void>() {
@@ -1180,7 +1196,7 @@ public class Home extends AppCompatActivity
 
         try {
             boolean isSuccess = googleMap.setMapStyle(
-                    MapStyleOptions.loadRawResourceStyle(this, R.raw.siyaya_map)
+                    MapStyleOptions.loadRawResourceStyle(this, R.raw.dull_map)
             );
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -1201,10 +1217,8 @@ public class Home extends AppCompatActivity
                         .title("Destination"));
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15.0f));
 
-                ButtonSheetRiderFragment mBottomSheet = ButtonSheetRiderFragment.newInstance(String.format("%f,%f", mLastLocation.getLatitude(), mLastLocation.getLongitude()),
-                        String.format("%f,%f", latLng.latitude, latLng.longitude),
-                        true);
-                mBottomSheet.show(getSupportFragmentManager(), mBottomSheet.getTag());
+                //ButtonSheetRiderFragment mBottomSheet = new ButtonSheetRiderFragment();
+                floatingActionButton.show();
             }
         });
 
