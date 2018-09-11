@@ -35,7 +35,7 @@
 
         <RadioButton
             android:id="@+id/forest_route"
-            android:text="Forest Hill"
+            android:text="Forrest Hill"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 

@@ -171,7 +171,7 @@ public class Home extends AppCompatActivity
     String mPlaceLocation, mPlaceDestination;
 
     CircleImageView imageAvatar;
-    TextView txtRiderName, txtStars;
+    TextView txtRiderName, txtStars, txtHeading, txtMainContent;
 
     FirebaseStorage firebaseStorage;
     StorageReference storageReference;
@@ -250,8 +250,11 @@ public class Home extends AppCompatActivity
         final RadioButton town = layout_route.findViewById(R.id.town_route);
         final RadioButton central = layout_route.findViewById(R.id.central_route);
         final RadioButton summer = layout_route.findViewById(R.id.summer_route);
-        final RadioButton forest = layout_route.findViewById(R.id.forest_route);
+        final RadioButton Forrest = layout_route.findViewById(R.id.forest_route);
         final RadioButton green = layout_route.findViewById(R.id.green_route);
+
+        txtHeading = findViewById(R.id.heading);
+        txtMainContent = findViewById(R.id.txt_main_content);
 
         switch (current_user.getRoute()) {
             case "Town":
@@ -272,10 +275,10 @@ public class Home extends AppCompatActivity
                 availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Summerstrand");
                 availableDrivers.addValueEventListener(Home.this);
                 break;
-            case "Forest Hill":
-                forest.setChecked(true);
-                route_ = "Forest Hill";
-                availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Forest Hill");
+            case "Forrest Hill":
+                Forrest.setChecked(true);
+                route_ = "Forrest Hill";
+                availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Forrest Hill");
                 availableDrivers.addValueEventListener(Home.this);
                 break;
             case "Greenacres":
@@ -283,6 +286,34 @@ public class Home extends AppCompatActivity
                 route_ = "Greenacres";
                 availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Greenacres");
                 availableDrivers.addValueEventListener(Home.this);
+                break;
+        }
+        txtHeading.setText(route_);
+        switch (route_) {
+            case "Town":
+                txtMainContent.setText("Taxi fare : R12 \n" +
+                        "Operation times : 06:00 - 19:00 \n" +
+                        "Stops include : nciocw");
+                break;
+            case "Central":
+                txtMainContent.setText("Taxi fare : R12 \n" +
+                        "Operation times : 06:00 - 19:00 \n" +
+                        "Stops include : nciocw");
+                break;
+            case "Summerstrand":
+                txtMainContent.setText("Taxi fare : R12 \n" +
+                        "Operation times : 06:00 - 19:00 \n" +
+                        "Stops include : nciocw");
+                break;
+            case "Forrest Hill":
+                txtMainContent.setText("Taxi fare : R12 \n" +
+                        "Operation times : 06:00 - 19:00 \n" +
+                        "Stops include : nciocw");
+                break;
+            case "Greenacres":
+                txtMainContent.setText("Taxi fare : R12 \n" +
+                        "Operation times : 06:00 - 19:00 \n" +
+                        "Stops include : nciocw");
                 break;
         }
         /*if (availableDrivers !=null)
@@ -404,6 +435,8 @@ public class Home extends AppCompatActivity
         });
     }
 
+    //BottomSheet
+
     private void requestPickupHere(String uid) {
         DatabaseReference dbRequest = FirebaseDatabase.getInstance().getReference(Common.pickup_request_tbl);
         GeoFire mGeoFire = new GeoFire(dbRequest);
@@ -441,8 +474,8 @@ public class Home extends AppCompatActivity
             case "Summerstrand":
                 driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Summerstrand");
                 break;
-            case "Forest Hill":
-                driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Forest Hill");
+            case "Forrest Hill":
+                driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Forrest Hill");
                 break;
             case "Central":
                 driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Central");
@@ -572,8 +605,8 @@ public class Home extends AppCompatActivity
                         case "Summerstrand":
                             availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Summerstrand");
                             break;
-                        case "Forest Hill":
-                            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Forest Hill");
+                        case "Forrest Hill":
+                            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Forrest Hill");
                             break;
                         case "Central":
                             availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Central");
@@ -626,8 +659,8 @@ public class Home extends AppCompatActivity
             case "Summerstrand":
                 driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Summerstrand");
                 break;
-            case "Forest Hill":
-                driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Forest Hill");
+            case "Forrest Hill":
+                driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Forrest Hill");
                 break;
             case "Central":
                 driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child("Central");
@@ -674,8 +707,8 @@ public class Home extends AppCompatActivity
 
                                         }
                                         break;
-                                    case "Forest Hill":
-                                        if(rider.getRoute().equals("Forest Hill")){
+                                    case "Forrest Hill":
+                                        if(rider.getRoute().equals("Forrest Hill")){
                                             mMap.addMarker(new MarkerOptions()
                                                     .position(new LatLng(location.latitude, location.longitude))
                                                     .flat(true)
@@ -821,13 +854,13 @@ public class Home extends AppCompatActivity
         dialog.setTitle("Choose Your Route");
         //dialog.setMessage("Please use email to sign in");
 
-        LayoutInflater inflater = LayoutInflater.from(this);
+        final LayoutInflater inflater = LayoutInflater.from(this);
         View layout_route = inflater.inflate(R.layout.layout_update_route, null);
 
         final RadioButton town = layout_route.findViewById(R.id.town_route);
         final RadioButton central = layout_route.findViewById(R.id.central_route);
         final RadioButton summer = layout_route.findViewById(R.id.summer_route);
-        final RadioButton forest = layout_route.findViewById(R.id.forest_route);
+        final RadioButton Forrest = layout_route.findViewById(R.id.forest_route);
         final RadioButton green = layout_route.findViewById(R.id.green_route);
 
         switch (current_user.getRoute()) {
@@ -843,15 +876,16 @@ public class Home extends AppCompatActivity
                 summer.setChecked(true);
                 route_ = "Summerstrand";
                 break;
-            case "Forest Hill":
-                forest.setChecked(true);
-                route_ = "Forest Hill";
+            case "Forrest Hill":
+                Forrest.setChecked(true);
+                route_ = "Forrest Hill";
                 break;
             case "Greenacres":
                 green.setChecked(true);
                 route_ = "Greenacres";
                 break;
         }
+        txtHeading.setText(route_);
 
         AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
             @Override
@@ -864,8 +898,8 @@ public class Home extends AppCompatActivity
                     updateInfo.put("route", central.getText().toString());
                 else if (summer.isChecked())
                     updateInfo.put("route", summer.getText().toString());
-                else if (forest.isChecked())
-                    updateInfo.put("route", forest.getText().toString());
+                else if (Forrest.isChecked())
+                    updateInfo.put("route", Forrest.getText().toString());
                 else if (green.isChecked())
                     updateInfo.put("route", green.getText().toString());
 
@@ -924,6 +958,9 @@ public class Home extends AppCompatActivity
                                 availableDrivers.removeEventListener(Home.this);
                             availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(town.getText().toString());
                             availableDrivers.addValueEventListener(Home.this);
+                            txtMainContent.setText("Taxi fare : R12 \n" +
+                                    "Operation times : 06:00 - 19:00 \n" +
+                                    "Stops include : nciocw");
                             loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
                         }
                         else if (central.isChecked()) {
@@ -933,6 +970,9 @@ public class Home extends AppCompatActivity
                                 availableDrivers.removeEventListener(Home.this);
                             availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(central.getText().toString());
                             availableDrivers.addValueEventListener(Home.this);
+                            txtMainContent.setText("Taxi fare : R12 \n" +
+                                    "Operation times : 06:00 - 19:00 \n" +
+                                    "Stops include : nciocw");
                             loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
                         }
                         else if (summer.isChecked()) {
@@ -942,15 +982,21 @@ public class Home extends AppCompatActivity
                                 availableDrivers.removeEventListener(Home.this);
                             availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(summer.getText().toString());
                             availableDrivers.addValueEventListener(Home.this);
+                            txtMainContent.setText("Taxi fare : R12 \n" +
+                                    "Operation times : 06:00 - 19:00 \n" +
+                                    "Stops include : nciocw");
                             loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
                         }
-                        else if (forest.isChecked()) {
-                            updateInfo.put("route", forest.getText().toString());
+                        else if (Forrest.isChecked()) {
+                            updateInfo.put("route", Forrest.getText().toString());
                             mMap.clear();
                             if(availableDrivers != null)
                                 availableDrivers.removeEventListener(Home.this);
-                            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(forest.getText().toString());
+                            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(Forrest.getText().toString());
                             availableDrivers.addValueEventListener(Home.this);
+                            txtMainContent.setText("Taxi fare : R12 \n" +
+                                    "Operation times : 06:00 - 19:00 \n" +
+                                    "Stops include : nciocw");
                             loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
                         }
                         else if (green.isChecked()) {
@@ -960,6 +1006,7 @@ public class Home extends AppCompatActivity
                                 availableDrivers.removeEventListener(Home.this);
                             availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(green.getText().toString());
                             availableDrivers.addValueEventListener(Home.this);
+
                             loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
                         }
 
@@ -969,8 +1016,25 @@ public class Home extends AppCompatActivity
                                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                                     @Override
                                     public void onComplete(@NonNull Task<Void> task) {
-                                        if (task.isSuccessful())
+                                        if (task.isSuccessful()) {
+                                            if (route_.equals("Town"))
+                                                txtMainContent.setText("Taxi fare : R12 \n" +
+                                                        "Operation times : 06:00 - 19:00 \n" +
+                                                        "Stops include : or");
+                                            else if (route_.equals("Central"))
+                                                txtMainContent.setText("Taxi fare : R12 \n" +
+                                                        "Operation times : 06:00 - 19:00 \n" +
+                                                        "Stops include : or");
+                                            else if (route_.equals("Summerstrand"))
+                                                txtMainContent.setText("Taxi fare : R12 \n" +
+                                                        "Operation times : 06:00 - 19:00 \n" +
+                                                        "Stops include : or");
+                                            else if (route_.equals("Central"))
+                                                txtMainContent.setText("Taxi fare : R12 \n" +
+                                                        "Operation times : 06:00 - 19:00 \n" +
+                                                        "Stops include : or");
                                             Toast.makeText(Home.this, "Route Updated!", Toast.LENGTH_SHORT).show();
+                                        }
                                         else
                                             Toast.makeText(Home.this, "Route Updated error!", Toast.LENGTH_SHORT).show();
 
@@ -1246,16 +1310,16 @@ public class Home extends AppCompatActivity
             route_ = "Central";
         else if(radioButton.getText().equals("Summerstrand"))
             route_ = "Summerstrand";
-        else if(radioButton.getText().equals("Forest Hill"))
-            route_ = "Forest Hill";
+        else if(radioButton.getText().equals("Forrest Hill"))
+            route_ = "Forrest Hill";
         else if(radioButton.getText().equals("Greenacres"))
             route_ = "Greenacres";
     }
 
     @Override
     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-        loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(),
-                mLastLocation.getLongitude()));
+        //loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(),
+                //mLastLocation.getLongitude()));
     }
 
     @Override
@@ -1308,8 +1372,8 @@ public class Home extends AppCompatActivity
             route_ = "Central";
         else if(radioButton.getText().equals("Summerstrand"))
             route_ = "Summerstrand";
-        else if(radioButton.getText().equals("Forest Hill"))
-            route_ = "Forest Hill";
+        else if(radioButton.getText().equals("Forrest Hill"))
+            route_ = "Forrest Hill";
         else if(radioButton.getText().equals("Greenacres"))
             route_ = "Greenacres";
     }
