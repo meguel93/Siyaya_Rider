@@ -1,6 +1,7 @@
 package com.example.valtron.siyaya_rider;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -16,6 +17,8 @@ import android.os.Bundle;
 import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
+import android.support.design.widget.BottomSheetBehavior;
+import android.support.design.widget.BottomSheetDialog;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.LocalBroadcastManager;
@@ -38,6 +41,7 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -171,12 +175,16 @@ public class Home extends AppCompatActivity
     String mPlaceLocation, mPlaceDestination;
 
     CircleImageView imageAvatar;
-    TextView txtRiderName, txtStars, txtHeading, txtMainContent;
+    TextView txtRiderName, txtStars, txtHeading, txtFare, txtRink,
+    txtTime;
 
     FirebaseStorage firebaseStorage;
     StorageReference storageReference;
 
     //BottomAppBar bottomAppBar;
+    View bottomSheet;
+    private BottomSheetBehavior mBottomSheetBehavior1;
+    LinearLayout tapactionlayout;
     FloatingActionButton floatingActionButton;
     String route_ = "";
 
@@ -192,18 +200,6 @@ public class Home extends AppCompatActivity
             mUserMarker.hideInfoWindow();
         }
     };
-
-    /*private BroadcastReceiver mArrived = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Common.driverId = "";
-            isDriverFound = false;
-
-            floatingActionButton.setBackgroundResource(R.drawable.ic_phone_24dp);
-            floatingActionButton.setBackgroundColor(Color.parseColor("#0652DD"));
-            floatingActionButton.setEnabled(true);
-        }
-    };*/
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -242,6 +238,43 @@ public class Home extends AppCompatActivity
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
+        tapactionlayout = (LinearLayout) findViewById(R.id.tap_action_layout);
+        bottomSheet = findViewById(R.id.bottom_sheet);
+        mBottomSheetBehavior1 = BottomSheetBehavior.from(bottomSheet);
+        mBottomSheetBehavior1.setPeekHeight(100);
+        mBottomSheetBehavior1.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        mBottomSheetBehavior1.setBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
+                    tapactionlayout.setVisibility(View.VISIBLE);
+                }
+
+                if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+                    tapactionlayout.setVisibility(View.GONE);
+                }
+
+                if (newState == BottomSheetBehavior.STATE_DRAGGING) {
+                    tapactionlayout.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+
+            }
+        });
+
+        tapactionlayout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(mBottomSheetBehavior1.getState()==BottomSheetBehavior.STATE_COLLAPSED)
+                {
+                    mBottomSheetBehavior1.setState(BottomSheetBehavior.STATE_EXPANDED);
+                }
+            }
+        });
+
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
         LayoutInflater inflater = LayoutInflater.from(this);
@@ -254,7 +287,9 @@ public class Home extends AppCompatActivity
         final RadioButton green = layout_route.findViewById(R.id.green_route);
 
         txtHeading = findViewById(R.id.heading);
-        txtMainContent = findViewById(R.id.txt_main_content);
+        txtFare = findViewById(R.id.txt_payment);
+        txtRink = findViewById(R.id.txt_rink);
+        txtTime = findViewById(R.id.txt_operation_times);
 
         switch (current_user.getRoute()) {
             case "Town":
@@ -288,34 +323,7 @@ public class Home extends AppCompatActivity
                 availableDrivers.addValueEventListener(Home.this);
                 break;
         }
-        txtHeading.setText(route_);
-        switch (route_) {
-            case "Town":
-                txtMainContent.setText("Taxi fare : R12 \n" +
-                        "Operation times : 06:00 - 19:00 \n" +
-                        "Stops include : nciocw");
-                break;
-            case "Central":
-                txtMainContent.setText("Taxi fare : R12 \n" +
-                        "Operation times : 06:00 - 19:00 \n" +
-                        "Stops include : nciocw");
-                break;
-            case "Summerstrand":
-                txtMainContent.setText("Taxi fare : R12 \n" +
-                        "Operation times : 06:00 - 19:00 \n" +
-                        "Stops include : nciocw");
-                break;
-            case "Forrest Hill":
-                txtMainContent.setText("Taxi fare : R12 \n" +
-                        "Operation times : 06:00 - 19:00 \n" +
-                        "Stops include : nciocw");
-                break;
-            case "Greenacres":
-                txtMainContent.setText("Taxi fare : R12 \n" +
-                        "Operation times : 06:00 - 19:00 \n" +
-                        "Stops include : nciocw");
-                break;
-        }
+        UpdateBottomSheet(route_);
         /*if (availableDrivers !=null)
             availableDrivers.removeEventListener(Home.this);*/
         View navigationHeaderView = navigationView.getHeaderView(0);
@@ -885,7 +893,6 @@ public class Home extends AppCompatActivity
                 route_ = "Greenacres";
                 break;
         }
-        txtHeading.setText(route_);
 
         AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
             @Override
@@ -904,7 +911,7 @@ public class Home extends AppCompatActivity
                     updateInfo.put("route", green.getText().toString());
 
                 DatabaseReference CommuterInformation = FirebaseDatabase.getInstance().getReference(Common.user_rider_tbl);
-                /*CommuterInformation.child(account.getId())
+                CommuterInformation.child(account.getId())
                         .updateChildren(updateInfo)
                         .addOnCompleteListener(new OnCompleteListener<Void>() {
                             @Override
@@ -916,7 +923,7 @@ public class Home extends AppCompatActivity
 
                                 //waitingDialog.dismiss();
                             }
-                        });*/
+                        });
                 CommuterInformation.child(account.getId())
                         .addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
@@ -953,62 +960,25 @@ public class Home extends AppCompatActivity
                         Map<String, Object> updateInfo = new HashMap<>();
                         if (town.isChecked()) {
                             updateInfo.put("route", town.getText().toString());
-                            mMap.clear();
-                            if(availableDrivers != null)
-                                availableDrivers.removeEventListener(Home.this);
-                            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(town.getText().toString());
-                            availableDrivers.addValueEventListener(Home.this);
-                            txtMainContent.setText("Taxi fare : R12 \n" +
-                                    "Operation times : 06:00 - 19:00 \n" +
-                                    "Stops include : nciocw");
-                            loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
                         }
                         else if (central.isChecked()) {
-                            updateInfo.put("route", central.getText().toString());
-                            mMap.clear();
-                            if(availableDrivers != null)
-                                availableDrivers.removeEventListener(Home.this);
-                            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(central.getText().toString());
-                            availableDrivers.addValueEventListener(Home.this);
-                            txtMainContent.setText("Taxi fare : R12 \n" +
-                                    "Operation times : 06:00 - 19:00 \n" +
-                                    "Stops include : nciocw");
-                            loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
-                        }
+                            updateInfo.put("route", central.getText().toString());}
                         else if (summer.isChecked()) {
-                            updateInfo.put("route", summer.getText().toString());
-                            mMap.clear();
-                            if(availableDrivers != null)
-                                availableDrivers.removeEventListener(Home.this);
-                            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(summer.getText().toString());
-                            availableDrivers.addValueEventListener(Home.this);
-                            txtMainContent.setText("Taxi fare : R12 \n" +
-                                    "Operation times : 06:00 - 19:00 \n" +
-                                    "Stops include : nciocw");
-                            loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
-                        }
+                            updateInfo.put("route", summer.getText().toString());}
                         else if (Forrest.isChecked()) {
-                            updateInfo.put("route", Forrest.getText().toString());
-                            mMap.clear();
-                            if(availableDrivers != null)
-                                availableDrivers.removeEventListener(Home.this);
-                            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(Forrest.getText().toString());
-                            availableDrivers.addValueEventListener(Home.this);
-                            txtMainContent.setText("Taxi fare : R12 \n" +
-                                    "Operation times : 06:00 - 19:00 \n" +
-                                    "Stops include : nciocw");
-                            loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
-                        }
+                            updateInfo.put("route", Forrest.getText().toString());}
                         else if (green.isChecked()) {
                             updateInfo.put("route", green.getText().toString());
-                            mMap.clear();
-                            if(availableDrivers != null)
-                                availableDrivers.removeEventListener(Home.this);
-                            availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(green.getText().toString());
-                            availableDrivers.addValueEventListener(Home.this);
+                            }
 
-                            loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
-                        }
+                        mMap.clear();
+                        if(availableDrivers != null)
+                            availableDrivers.removeEventListener(Home.this);
+                        availableDrivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(route_);
+                        availableDrivers.addValueEventListener(Home.this);
+                        loadAllAvailableDrivers(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+
+                        UpdateBottomSheet(route_);
 
                         DatabaseReference CommuterInformation = FirebaseDatabase.getInstance().getReference(Common.user_rider_tbl);
                         CommuterInformation.child(account.getId())
@@ -1017,22 +987,12 @@ public class Home extends AppCompatActivity
                                     @Override
                                     public void onComplete(@NonNull Task<Void> task) {
                                         if (task.isSuccessful()) {
-                                            if (route_.equals("Town"))
-                                                txtMainContent.setText("Taxi fare : R12 \n" +
-                                                        "Operation times : 06:00 - 19:00 \n" +
-                                                        "Stops include : or");
-                                            else if (route_.equals("Central"))
-                                                txtMainContent.setText("Taxi fare : R12 \n" +
-                                                        "Operation times : 06:00 - 19:00 \n" +
-                                                        "Stops include : or");
-                                            else if (route_.equals("Summerstrand"))
-                                                txtMainContent.setText("Taxi fare : R12 \n" +
-                                                        "Operation times : 06:00 - 19:00 \n" +
-                                                        "Stops include : or");
-                                            else if (route_.equals("Central"))
-                                                txtMainContent.setText("Taxi fare : R12 \n" +
-                                                        "Operation times : 06:00 - 19:00 \n" +
-                                                        "Stops include : or");
+                                            Intent intent = getIntent();
+                                            intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                                            finish();
+                                            overridePendingTransition( 0, 0);
+                                            startActivity(intent);
+                                            overridePendingTransition( 0, 0);
                                             Toast.makeText(Home.this, "Route Updated!", Toast.LENGTH_SHORT).show();
                                         }
                                         else
@@ -1300,20 +1260,36 @@ public class Home extends AppCompatActivity
         googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(37.7750,-122.4183), 12));*/
     }
 
-    public void checkButton(View v) {
-        int radioId = radioGroup.getCheckedRadioButtonId();
-
-        radioButton = findViewById(radioId);
-        if(radioButton.getText().equals("Town"))
-            route_ = "Town";
-        else if(radioButton.getText().equals("Central"))
-            route_ = "Central";
-        else if(radioButton.getText().equals("Summerstrand"))
-            route_ = "Summerstrand";
-        else if(radioButton.getText().equals("Forrest Hill"))
-            route_ = "Forrest Hill";
-        else if(radioButton.getText().equals("Greenacres"))
-            route_ = "Greenacres";
+    @SuppressLint("SetTextI18n")
+    public void UpdateBottomSheet(String route) {
+        txtHeading.setText(route);
+        switch (route) {
+            case "Town":
+                txtFare.setText("R10");
+                txtTime.setText("06:00 - 19:00");
+                txtRink.setText("Town");
+                break;
+            case "Central":
+                txtFare.setText("R10");
+                txtTime.setText("06:00 - 19:00");
+                txtRink.setText("Town");
+                break;
+            case "Summerstrand":
+                txtFare.setText("R12");
+                txtTime.setText("06:00 - 19:00");
+                txtRink.setText("Town");
+                break;
+            case "Forrest Hill":
+                txtFare.setText("R10");
+                txtTime.setText("06:00 - 19:00");
+                txtRink.setText("Town");
+                break;
+            case "Greenacres":
+                txtFare.setText("R10");
+                txtTime.setText("06:00 - 19:00");
+                txtRink.setText("Town");
+                break;
+        }
     }
 
     @Override
